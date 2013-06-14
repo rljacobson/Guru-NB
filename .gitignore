@@ -12,6 +12,9 @@
 /*.gitk-tmp*
 sdist.log
 
+#PyCharm stuff.
+.idea
+
 # sage files to ignore:
 /build
 /dist
