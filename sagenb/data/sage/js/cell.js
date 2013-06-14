@@ -246,6 +246,7 @@ sagenb.worksheetapp.cell = function(id) {
 				tabSize: 4,
 				indentUnit: 4,
 				lineNumbers: $("#line_numbers_checkbox").prop("checked"),
+                lineWrapping: true,
 				matchBrackets: true,
 				
 				readOnly: (_this.worksheet.published_mode ? true : false),
