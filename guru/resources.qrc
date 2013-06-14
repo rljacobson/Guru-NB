@@ -1,0 +1,17 @@
+<RCC>
+  <qresource prefix="images">
+    <file>images/delete-item.png</file>
+    <file>images/next-item.png</file>
+    <file>images/print.png</file>
+    <file>images/paste2_30.png</file>
+    <file>images/server.png</file>
+    <file>images/add-item.png</file>
+    <file>images/cloud-filled.png</file>
+    <file>images/configuration02.png</file>
+    <file>images/copy-item.png</file>
+    <file>images/file2_30.png</file>
+    <file>images/processing-02.png</file>
+    <file>images/save.png</file>
+    <file>images/Scissors.png</file>
+  </qresource>
+</RCC>

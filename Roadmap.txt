@@ -1,0 +1,33 @@
+Version 0:
+    FEATURES
+    Open and save .sws files.
+    Connect to a local sage instance using pexpect.
+    Display correctly in the browser.
+    No Sage dependencies.
+    No flask dependencies.
+    All dependencies self-contained/included, i.e., assumes nothing about local python install.
+
+    LIMITATIONS
+    Interacts don't work.
+    Only CAS "system" available is Sage. ?? Is this true?
+    Some UI menus/toolbars are nonfunctional.
+    Translations are broken.
+    Jmol is broken.
+
+
+Version 1:
+    Replace notebook.py with worksheet_controller.py.
+    All UI menus/toolbars function.
+    Connect to a Sage notebook server as a backend.
+    Connect to a remote Sage instance (ssh+cli) using pextpect.
+    Typset math looks nice.
+    Use a Sage cell server as a backend.
+    
+    LIMITATIONS
+    Interacts don't work.
+    
+Version 2:
+    Open from and save to a Sage notebook server.
+    Open from and save to a SageMath Cloud server.
+    Additional Sage backends?
+    Interacts.

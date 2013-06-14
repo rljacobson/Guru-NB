@@ -1,0 +1,67 @@
+What's the UPDATING code? Can I replace it with something more efficient?
+
+It looks like I can interact with the worksheet by rewriting sagenb.async_request in sagenb.js.
+
+Rewrite sagenb.worksheetapp.cell.check_for_output?
+
+UKNOWNS:
+	Attached scripts
+	Attached data
+	Docs
+	Jmol?
+
+############# Dependencies #############
+
+Python dependencies: pexpect, webassets, jinja2
+
+############# Bugs in sagenb #############
+
+Sage bugs:
+    sagenb.notebook.worksheet.check_comp(self, wait=.02) ignores the wait parameter.
+    worksheet depends on notebook?
+    sagenb.notebook.notebook.new_worksheet_process() does not set python='sage -python' when returning a new WorksheetProcess_ExpectImplementation object.
+    sagenb.misc.misc tries to import from itself on line 177.
+    sagenb.notebook.notebook.create_new_worksheet does not set _notebook on the new worksheet.
+
+############# Architecture #############
+
+Guru/worksheet_webview
+    conduit between WebView and worksheet.py.
+
+Guru/worksheet_controller
+    assigns filenames, opens/saves worksheets, assigns Sage instances, etc.
+    
+Guru/sage_process_controller
+    Connects worksheets to remote and local Sage instances.
+    Holds information about available Sage instances.
+
+Changes required to worksheet.html
+	Remove navbar.
+	Initialization code expects a filename for the worksheet. Give it a meaningful filename instead of pulling from window.location.pathname.
+
+
+############# Changes to sagenb #############
+
+Changes made to:
+	cell.py: Fake interact import.
+	
+	server_conf.py: Fake flaskext.babel import.
+    
+    notebook.py: In new_worksheet_process, when we return the worksheet process, we set python='sage -python'.
+
+    sagenb/data/sage/html/*.html: removed leading /'s.
+
+    base.html: Fixed reference to username.js to instead set sagenb.username directly.
+    		   Removed navbar.
+
+    sagenb.js: Rewrote sagenb.async_request to communicate with Python-javascript bridge instead of ajax.
+
+    sagenb/data/webassets_generated/worksheet.js: Told where to find mathjax. (Do we need to do this with other javascript libraries?)
+
+	worksheet.html: Commented out jmol stuff.
+
+	load_mathjax.js: Told where to find mathjax. (Do we need to do this with other javascript libraries?)
+
+	Mathjax.js: For some reason I had to keep Mathjax from accessing cookies. ??
+
+	main.less: lesscss.js isn't @import'ing other .less files, so I put everything in one file.
