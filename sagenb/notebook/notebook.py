@@ -40,7 +40,7 @@ from . import worksheet    # individual worksheets (which make up a notebook)
 from . import server_conf  # server configuration
 from . import user_conf    # user configuration
 from . import user         # users
-from template import template, prettify_time_ago
+#from template import template, prettify_time_ago #unused?
 from flaskext.babel import gettext, lazy_gettext
 
 try:
@@ -628,7 +628,7 @@ class Notebook(object):
 
         server_pool = self.server_pool()
         if not server_pool or len(server_pool) == 0:
-            return WorksheetProcess_ExpectImplementation(process_limits=process_limits)
+            return WorksheetProcess_ExpectImplementation(process_limits=process_limits, python='sage -python')
         else:
             import random
             user_at_host = random.choice(server_pool)
