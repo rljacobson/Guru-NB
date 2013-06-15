@@ -22,8 +22,24 @@ from cgi import escape
 from sagenb.misc.misc import (word_wrap, strip_string_literals,
                               set_restrictive_permissions, unicode_str,
                               encoded_str)
-from interact import (INTERACT_RESTART, INTERACT_UPDATE_PREFIX,
-                      INTERACT_TEXT, INTERACT_HTML)
+#from interact import (INTERACT_RESTART, INTERACT_UPDATE_PREFIX,
+#                      INTERACT_TEXT, INTERACT_HTML)
+############ BEGIN FAKE INTERACT IMPORT ############
+
+# Prefixed to cell input, signals an interact update.
+INTERACT_UPDATE_PREFIX = '%__sage_interact__'
+
+# If this special message appears in an interact cell's output, it
+# should trigger an automatic re-evaluation of the ambient cell.
+INTERACT_RESTART = '<!--__SAGE_INTERACT_RESTART__-->'
+
+# Place-holder markers/fields, replaced in cell.py and
+# notebook_lib.js.
+INTERACT_TEXT = '<!--__SAGE__TEXT-->'
+INTERACT_HTML = '<!--__SAGE__HTML-->'
+
+############ END FAKE INTERACT IMPORT ############
+
 
 # Maximum number of characters allowed in output.  This is needed
 # avoid overloading web browser.  For example, it should be possible
