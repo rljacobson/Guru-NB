@@ -14,7 +14,7 @@ UKNOWNS:
 
 Python dependencies: pexpect, webassets, jinja2
 
-############# Bugs in sagenb #############
+############# Bugs and issues in sagenb #############
 
 Sage bugs:
     sagenb.notebook.worksheet.check_comp(self, wait=.02) ignores the wait parameter.
@@ -22,6 +22,11 @@ Sage bugs:
     sagenb.notebook.notebook.new_worksheet_process() does not set python='sage -python' when returning a new WorksheetProcess_ExpectImplementation object.
     sagenb.misc.misc tries to import from itself on line 177.
     sagenb.notebook.notebook.create_new_worksheet does not set _notebook on the new worksheet.
+
+Sage "issues":
+	The notebook server only assumes there will ever be one notebook instance.
+	The notebook server fetches the source code from the local sage installation rather than the sage installation running the worksheet sage process.
+
 
 ############# Architecture #############
 
@@ -43,9 +48,7 @@ Changes required to worksheet.html
 ############# Changes to sagenb #############
 
 Changes made to:
-	cell.py: Fake interact import.
-	
-	server_conf.py: Fake flaskext.babel import.
+	worksheet.py, cell.py: Fake interact import.
     
     notebook.py: In new_worksheet_process, when we return the worksheet process, we set python='sage -python'.
 

@@ -6,10 +6,15 @@ from decorators import login_required, guest_or_login_required, with_lock
 from decorators import global_lock
 
 from flaskext.autoindex import AutoIndex
-SRC = os.path.join(os.environ['SAGE_ROOT'], 'devel', 'sage', 'sage')
+#SRC = os.path.join(os.environ['SAGE_ROOT'], 'devel', 'sage', 'sage')
 from flask.ext.openid import OpenID
 from flaskext.babel import Babel, gettext, ngettext, lazy_gettext, get_locale
 from sagenb.misc.misc import SAGENB_ROOT, DATA, SAGE_DOC, translations_path
+
+#The problem is that the server fetches the source code from the local sage installation
+#rather than the sage installation running the worksheet sage process. This strikes me
+#as a serious design flaw. For Guru, we'll have to think of something different.
+SRC = SAGENB_ROOT
 
 oid = OpenID()
 
@@ -26,7 +31,7 @@ class SageNBFlask(Flask):
         self.add_static_path('/data', os.path.join(DATA))
         
         # this one is special though since it points to SAGE_ROOT
-        self.add_static_path('/java/jmol', os.path.join(os.environ["SAGE_ROOT"], "local", "share", "jmol"))
+        #self.add_static_path('/java/jmol', os.path.join(os.environ["SAGE_ROOT"], "local", "share", "jmol"))
         
         
         import mimetypes

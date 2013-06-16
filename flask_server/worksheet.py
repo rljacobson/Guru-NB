@@ -6,7 +6,13 @@ from collections import defaultdict
 from flaskext.babel import Babel, gettext, ngettext, lazy_gettext
 _ = gettext
 
-from sagenb.notebook.interact import INTERACT_UPDATE_PREFIX
+#from sagenb.notebook.interact import INTERACT_UPDATE_PREFIX
+############ BEGIN FAKE INTERACT IMPORT ############
+
+# Prefixed to cell input, signals an interact update.
+INTERACT_UPDATE_PREFIX = '%__sage_interact__'
+
+############ END FAKE INTERACT IMPORT ############
 from sagenb.notebook.misc import encode_response
 
 ws = Module('flask_server.worksheet')
