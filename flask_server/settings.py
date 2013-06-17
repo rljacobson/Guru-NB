@@ -1,7 +1,7 @@
 import os
 import random
 from flask import Module, url_for, render_template, request, session, redirect, g, current_app
-from decorators import login_required, with_lock
+from flask_server.decorators import login_required, with_lock
 
 settings = Module('flask_server.settings')
 

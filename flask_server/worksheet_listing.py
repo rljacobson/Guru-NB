@@ -3,7 +3,7 @@
 import os
 import urllib, urlparse
 from flask import Module, url_for, render_template, request, session, redirect, g, current_app
-from decorators import login_required, guest_or_login_required, with_lock
+from flask_server.decorators import login_required, guest_or_login_required, with_lock
 from flaskext.babel import Babel, gettext, ngettext, lazy_gettext
 _ = gettext
 
@@ -168,7 +168,7 @@ def public_worksheet(id):
 
 @worksheet_listing.route('/home/pub/<id>/download/<path:title>')
 def public_worksheet_download(id, title):
-    from worksheet import unconditional_download
+    from flask_server.worksheet import unconditional_download
     worksheet_filename =  "pub/" + id
     try:
         worksheet = g.notebook.get_worksheet_with_filename(worksheet_filename)
@@ -436,5 +436,5 @@ def upload_worksheet():
     if new_name:
         W.set_name(new_name)
 
-    from worksheet import url_for_worksheet
+    from flask_server.worksheet import url_for_worksheet
     return redirect(url_for_worksheet(W))

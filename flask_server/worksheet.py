@@ -1,7 +1,7 @@
 import os, threading, collections
 from functools import wraps
 from flask import Module, url_for, render_template, request, session, redirect, g, current_app, make_response
-from decorators import guest_or_login_required, login_required, with_lock
+from flask_server.decorators import guest_or_login_required, login_required, with_lock
 from collections import defaultdict
 from flaskext.babel import Babel, gettext, ngettext, lazy_gettext
 _ = gettext
@@ -46,7 +46,7 @@ def worksheet_view(f):
                 worksheet.set_active(g.username)
 
             #This was in twist.Worksheet.childFactory
-            from base import notebook_updates
+            from flask_server.base import notebook_updates
             notebook_updates()
 
             return f(username, id, **kwds)
@@ -395,7 +395,7 @@ def worksheet_eval(worksheet):
     documentation of the function and the source code of the function
     respectively.
     """
-    from base import notebook_updates
+    from flask_server.base import notebook_updates
     
     r = {}
 

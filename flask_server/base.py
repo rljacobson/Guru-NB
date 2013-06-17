@@ -2,8 +2,8 @@
 import os, time, re
 from functools import partial
 from flask import Flask, Module, url_for, render_template, request, session, redirect, g, make_response, current_app
-from decorators import login_required, guest_or_login_required, with_lock
-from decorators import global_lock
+from flask_server.decorators import login_required, guest_or_login_required, with_lock
+from flask_server.decorators import global_lock
 
 from flaskext.autoindex import AutoIndex
 #SRC = os.path.join(os.environ['SAGE_ROOT'], 'devel', 'sage', 'sage')
@@ -112,7 +112,7 @@ def index():
         response.set_cookie('cookie_test_%s'%g.notebook.port, expires=1)
         return response
 
-    from authentication import login
+    from flask_server.authentication import login
 
     if current_app.startup_token is not None and 'startup_token' in request.args:
         if request.args['startup_token'] == current_app.startup_token:
@@ -193,7 +193,7 @@ def history():
 @login_required
 def live_history():
     W = g.notebook.create_new_worksheet_from_history(gettext('Log'), g.username, 100)
-    from worksheet import url_for_worksheet
+    from flask_server.worksheet import url_for_worksheet
     return redirect(url_for_worksheet(W))
 
 @base.route('/loginoid', methods=['POST', 'GET'])
@@ -404,22 +404,22 @@ def create_app(path_to_notebook, *args, **kwds):
     ########################
     app.register_blueprint(base)
 
-    from worksheet_listing import worksheet_listing
+    from flask_server.worksheet_listing import worksheet_listing
     app.register_blueprint(worksheet_listing)
 
-    from admin import admin
+    from flask_server.admin import admin
     app.register_blueprint(admin)
 
-    from authentication import authentication
+    from flask_server.authentication import authentication
     app.register_blueprint(authentication)
 
-    from doc import doc
+    from flask_server.doc import doc
     app.register_blueprint(doc)
 
-    from worksheet import ws as worksheet
+    from flask_server.worksheet import ws as worksheet
     app.register_blueprint(worksheet)
 
-    from settings import settings
+    from flask_server.settings import settings
     app.register_blueprint(settings)
 
     #autoindex v0.3 doesnt seem to work with modules

@@ -48,18 +48,18 @@ class NotebookRun(object):
 # Flask #
 #########
 import os, sys, random
-flask_dir = os.path.join('%(guru_root)s', 'flask_server')
-sys.path.append(flask_dir)
+#flask_dir = os.path.join('%(guru_root)s', 'flask_server')
+#sys.path.append(flask_dir)
 lib_path = os.path.join('%(guru_root)s', 'lib')
 sys.path.append(lib_path)
 sys.path.append('%(guru_root)s')
-import base as flask_base
+import flask_server.base as flask_base
 opts={}
 startup_token = '{0:x}'.format(random.randint(0, 2**128))
 if %(automatic_login)s:
     opts['startup_token'] = startup_token
 flask_app = flask_base.create_app(%(notebook_opts)s, **opts)
-sys.path.remove(flask_dir)
+#sys.path.remove(flask_dir)
 
 def save_notebook(notebook):
     print "Quitting all running worksheets..."

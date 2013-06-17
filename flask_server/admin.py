@@ -1,11 +1,11 @@
 import os
 from flask import Module, url_for, render_template, request, session, redirect, g, current_app
-from decorators import login_required, admin_required, with_lock
+from flask_server.decorators import login_required, admin_required, with_lock
 from flaskext.babel import Babel, gettext, ngettext, lazy_gettext
 _ = gettext
 from sagenb.notebook.misc import encode_response
 
-admin = Module('flask_server.admin')
+admin = Module('flask_server.admin') #What does this do?
 
 def random_password(length=8):
     from random import choice
