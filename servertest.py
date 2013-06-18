@@ -13,8 +13,6 @@ sagenb.misc.misc.DOT_SAGENB = "/Users/rljacobson/Downloads/.sagenb"
 
 from guru.RunFlask import startServer
 
-print "SERVERTEST CALLED"
-
 #Currently blocking.
 startServer()
 

@@ -58,8 +58,10 @@ def startServer():
 
     from sagenb.misc.misc import open_page; open_page('localhost', 8081, False, '/?startup_token=%s' % startup_token)
     try:
+        # flask_app.run(host='localhost', port=port, threaded=True,
+        #               ssl_context=None, debug=False)
         flask_app.run(host='localhost', port=port, threaded=True,
-                      ssl_context=None, debug=True)
+                      ssl_context=None, debug=True, use_reloader=False)
     finally:
         save_notebook(flask_base.notebook)
         os.unlink(sagenb_pid)
