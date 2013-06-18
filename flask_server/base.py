@@ -18,6 +18,8 @@ SRC = SAGENB_ROOT
 
 oid = OpenID()
 
+notebook = None
+
 class SageNBFlask(Flask):
     static_path = ''
 
@@ -360,11 +362,8 @@ def notebook_updates():
     notebook_save_check()
     notebook_idle_check()
 
-
-notebook = None
-
 #CLEAN THIS UP!
-def create_app(path_to_notebook, *args, **kwds):
+def create_app(path_to_notebook=None, *args, **kwds):
     """
     This is the main method to create a running notebook. This is
     called from the process spawned in run_notebook.py
@@ -375,9 +374,10 @@ def create_app(path_to_notebook, *args, **kwds):
     #############
     # OLD STUFF #
     #############
-    import sagenb.notebook.notebook as notebook
-    notebook.MATHJAX = True
-    notebook = notebook.load_notebook(path_to_notebook, *args, **kwds)
+    import sagenb.notebook.notebook as sagenb_notebook
+    #notebook.MATHJAX = True #This line makes no sense whatsoever.
+    if (notebook is None) or (path_to_notebook is not None):
+        notebook = sagenb_notebook.load_notebook(path_to_notebook, *args, **kwds)
     init_updates()
 
     ##############

@@ -9,8 +9,6 @@ try:
     import simplejson as json
 except ImportError:
     import json
-import tempfile
-
 
 from PySide.QtCore import (QObject, SIGNAL, Slot)
 
@@ -18,21 +16,19 @@ from sagenb.notebook.notebook import Notebook
 from sagenb.notebook.misc import encode_response
 from sagenb.misc.misc import (unicode_str, walltime)
 
+from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook
+
 worksheet_commands = {}
 
 class WorksheetController(QObject):
     #Class variables
-    notebook = None
+    notebook = guru_notebook
     worksheet_count = 0 #Reference counting.
-    #The following is unique number assigned to each worksheet implemented by just
-    #incrementing worksheet_unique every time a WorksheetController is created.
-    worksheet_unique = 0
 
     def __init__(self, webViewController):
         super(WorksheetController, self).__init__()
 
         WorksheetController.worksheet_count += 1
-        WorksheetController.worksheet_unique += 1
 
         self.webview_controller = webViewController
 
@@ -43,13 +39,10 @@ class WorksheetController(QObject):
 
         #Set up the local notebook and worksheet.
         #I need a better tmp directory.
-        if WorksheetController.notebook is None:
-            WorksheetController.notebook = Notebook('/Users/rljacobson/Downloads/'+'.sagenb')
+        if guru_notebook is None:
+            raise RuntimeError
 
-        #Each worksheet gets its own unique username
-        self.notebook_username = 'guru'+str(WorksheetController.worksheet_unique)
-        WorksheetController.notebook.user_manager().add_user(self.notebook_username,
-                                                                 'guru','rljacobson@gmail.com',force=True)
+        self.notebook_username = GURU_USERNAME
         self._worksheet = None
 
         self.init_updates()
@@ -57,8 +50,8 @@ class WorksheetController(QObject):
     @staticmethod
     def withNewWorksheet(webViewController):
         wsc = WorksheetController(webViewController)
-        wsc.setWorksheet(WorksheetController.notebook.create_new_worksheet('Untitled', wsc.notebook_username))
-        wsc._worksheet._notebook = WorksheetController.notebook
+        wsc.setWorksheet(guru_notebook.create_new_worksheet('Untitled', wsc.notebook_username))
+        wsc._worksheet._notebook = guru_notebook
         return wsc
 
     @staticmethod
@@ -66,16 +59,18 @@ class WorksheetController(QObject):
         wsc = WorksheetController(webViewController)
         ws = wsc.notebook.import_worksheet(filename, wsc.notebook_username)
         wsc.setWorksheet(ws)
-        wsc._worksheet._notebook = WorksheetController.notebook
+        wsc._worksheet._notebook = guru_notebook
         return wsc
 
     def setWorksheet(self, worksheet):
         #Check that the worksheet we were given has the notebook setup correctly.
         if (not hasattr(worksheet, "_notebook")) or (worksheet._notebook is None):
-            worksheet._notebook = WorksheetController.notebook
+            worksheet._notebook = guru_notebook
         self._worksheet = worksheet
 
-        self.webview_controller.show_rendered_template("html/worksheet.html")
+        #self.webview_controller.show_rendered_template("html/worksheet.html")
+        print "Setting URL to %s" % self.worksheetUrl()
+        self.webFrame.setUrl(self.worksheetUrl())
 
     def addJavascriptBridge(self):
         #This method is called whenever new content is loaded into the webFrame.
@@ -116,12 +111,17 @@ class WorksheetController(QObject):
             #Now remove the worksheet.
             self._worksheet.quit()
             self._worksheet = None
-        if (self.notebook is not None) and WorksheetController.worksheet_count==0:
-            #There are no worksheets open, so delete the notebook.
-            self.notebook.delete()
 
     def saveWorksheet(self, filename):
         self.worksheet_download(self._worksheet, filename)
+
+    def worksheetUrl(self):
+        if self._worksheet is None:
+            return ''
+        #There is probably a better way to do this.
+        url_vars = {'port' : GURU_PORT, 'username': GURU_USERNAME, 'idnum': self._worksheet.id_number()}
+        url = "http://localhost:%(port)s/home/%(username)s/%(idnum)s/" % url_vars
+        return url
 
     ########### WORKSHEET COMMANDS ###########
     def worksheet_command(target):

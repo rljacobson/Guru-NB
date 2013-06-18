@@ -36,7 +36,10 @@ def guest_or_login_required(f):
     @wraps(f)
     def wrapper(*args, **kwds):
         if 'username' not in session:
-            g.username = 'guest'
+            #g.username = 'guest'
+            # Guru: Security is pretty lax around here.
+            from guru.globals import GURU_USERNAME
+            g.username = session['username'] = GURU_USERNAME
         else:
             g.username = session['username']
         return f(*args, **kwds)
