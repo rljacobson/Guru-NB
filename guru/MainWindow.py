@@ -43,7 +43,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #The superclass sets up most of the UI.
         super(MainWindow, self).setupUi(self)
 
-        self.setUnifiedTitleAndToolBarOnMac(True)
+        #self.setUnifiedTitleAndToolBarOnMac(True)
+        self.setWindowTitle("Guru")
 
         self.setCentralWidget(self.webViewController().webView())
         #self.__index = 0
