@@ -11,6 +11,7 @@ from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
+from guru.globals import GURU_ROOT
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.isQuitting = False
 
         #This window may be editing a worksheet associated to a file.
-        self.filename = None
+        self.file_name = None
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
@@ -86,7 +87,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def showWelcome(self):
         #This method is only called if we're a welcome page, so...
         self.isWelcome = True
-        self.filename = None
+        self.file_name = None
 
         #Hide the toolbar.
         self.toolBar.hide()
@@ -95,10 +96,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.enableEditingActions(False)
 
         #Display the welcome page.
-        self.webViewController().show_rendered_template("html/guru_welcome.html")
+        self.webViewController().showHtmlFile("guru_welcome.html")
 
         #Hook up the javscript bridge.
-        self.webViewController().webView().page().mainFrame().addToJavaScriptWindowObject("GuruWelcome", self)
+        #self.webViewController().webView().page().mainFrame().addToJavaScriptWindowObject("GuruWelcome", self)
 
     #This is the counterpart to showWelcome(). It undoes the UI changes
     #that showWelcome() does. Probably a silly name.
@@ -186,9 +187,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #and if so, just delete the empty worksheet and replace it with the newly opened on.
         #We ignore that for now.
 
-        filename = QFileDialog.getOpenFileName(self, "Open Worksheet", filter="Sage Worksheets (*.sws *.txt *.html)")[0]
+        file_name = QFileDialog.getOpenFileName(self, "Open Worksheet", filter="Sage Worksheets (*.sws *.txt *.html)")[0]
 
-        if not filename:
+        if not file_name:
             #User clicked cancel.
             return
 
@@ -207,15 +208,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             main_window.show()
 
         #Open the worksheet.
-        main_window.webViewController().clear()
-        main_window.webViewController().worksheet_controller = WorksheetController.withWorksheetFile(main_window.webViewController(), filename)
+        main_window.webViewController().openWorksheetFile(file_name)
 
         #Set the working filename for this MainWindow instance.
-        self.filename = filename
+        main_window.file_name = file_name
 
     def doActionSave(self):
-        if self.filename:
-            self.saveFile(self.filename)
+        if self.file_name:
+            self.saveFile(self.file_name)
         else:
             self.doActionSaveAs()
 
@@ -234,16 +234,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.saveFile(filename)
 
-    def saveFile(self, filename):
-        #Write out the worksheet to filename whether it exists or not.
-        if os.path.exists(filename):
-            os.remove(filename)
-
-        #Save the file.
-        self.webViewController().worksheet_controller.saveWorksheet(filename)
+    def saveFile(self, file_name):
+        #Save the file, overwriting any existing file.
+        self.webViewController().saveWorksheetFile(file_name)
 
         #Set the working filename for this MainWindow instance.
-        self.filename = filename
+        self.file_name = file_name
 
     def doActionPrint(self):
         pass
@@ -270,16 +266,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         pass
 
     def doActionAbout(self):
-        message_text = """
-<b>Guru</b> version 0.nothing (or possibly negative)
-<p>Copyright &copy; 2013 Robert Jacobson.</p>
-<p>This software makes use of code from the Sage Project (sagemath.org). This software and Sage are both licensed under the GPL v.2.</p>
-<p>Guru is running in the following environment.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Python %s<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Qt %s<br>
-&nbsp;&nbsp;&nbsp;&nbsp;PySide %s<br>
-&nbsp;&nbsp;&nbsp;&nbsp;%s (OS)<br>
-        """ % (platform.python_version(), QT_VERSION_STR, PYSIDE_VERSION_STR, platform.system())
+        f = open(os.path.join(GURU_ROOT, 'guru', 'guru_about.html'))
+
+        file_contents = f.read()
+
+        message_text = file_contents % (platform.python_version(), QT_VERSION_STR, PYSIDE_VERSION_STR, platform.system())
         QMessageBox.about(self, "About Guru", message_text)
 
     def doActionSageServer(self):

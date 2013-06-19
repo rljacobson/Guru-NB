@@ -39,7 +39,7 @@ def startServerThread():
     from threading import Thread
     from guru.RunFlask import startServer
 
-    options = {'notebook_to_use':guru_notebook, 'open_browser': True, 'debug_mode': True}
+    options = {'notebook_to_use':guru_notebook, 'open_browser': False, 'debug_mode': True}
 
     guru_server_thread = Thread(target=startServer, kwargs=options)
     #Setting guru_server_thread.daemon to False would keep Python from terminating as long

@@ -12,6 +12,7 @@ app = QApplication(sys.argv)
 main_window = MainWindow(isWelcome=True)
 main_window.show()
 main_window.activateWindow() #This does not work for some reason.
+main_window.raise_()         #But this does.
 app.exec_()
 
 cleanup()

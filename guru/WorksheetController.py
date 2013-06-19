@@ -4,6 +4,8 @@
 #   Open and save .sws files.
 #   Delete the internal notebook object on disk when done.
 
+import os
+
 try:
     # simplejson is faster, so try to import it first
     import simplejson as json
@@ -112,8 +114,11 @@ class WorksheetController(QObject):
             self._worksheet.quit()
             self._worksheet = None
 
-    def saveWorksheet(self, filename):
-        self.worksheet_download(self._worksheet, filename)
+    def saveWorksheet(self, file_name):
+        #Write out the worksheet to filename whether it exists or not.
+        if os.path.exists(file_name):
+            os.remove(file_name) #This may be unnecessary.
+        self.worksheet_download(self._worksheet, file_name)
 
     def worksheetUrl(self):
         if self._worksheet is None:
