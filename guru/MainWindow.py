@@ -246,7 +246,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if existing_titles.count(title_text) > 0:
             counter = 1
             while existing_titles.count(title_text + " (%d)"%counter) > 0:
-                print title_text + " (%d)"%counter
                 counter += 1
             #3. using (1) and (2), creates a unique titleName of the form "filename.sws (n)";
             title_text += " (%d)"%counter
@@ -361,8 +360,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def doActionQuit(self):
         MainWindow.isQuitting = True
-        for window in MainWindow.instances:
-            window.close()
+
+        while MainWindow.instances:
+            window = MainWindow.instances[0]
+            if not window.close():
+                break
 
     def doActionCopy(self):
         QMessageBox.information(self, "Not Implemented", "Not implemented.")
