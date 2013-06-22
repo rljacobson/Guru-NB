@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="images">
+    <file>images/close_30.png</file>
+    <file>images/history3_30.png</file>
     <file>images/delete-item.png</file>
     <file>images/next-item.png</file>
     <file>images/print.png</file>

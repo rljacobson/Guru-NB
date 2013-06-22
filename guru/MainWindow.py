@@ -1,9 +1,9 @@
 import platform
 import os
 
-from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog)
-from PySide.QtCore import (SIGNAL, Slot)
-
+from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction)
+from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt)
+#The next two are imported as their PyQt names.
 from PySide import __version__ as PYSIDE_VERSION_STR
 from PySide.QtCore import __version__ as QT_VERSION_STR
 
@@ -13,20 +13,37 @@ from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
 from guru.globals import GURU_ROOT
 
+
+def isAlive(qobj):
+    # #If this object has been completely destroyed, returns False.
+    # import sip
+    # try:
+    #     sip.unwrapinstance(qobj)
+    # except RuntimeError:
+    #     return False
+    # return True
+    return True #Unfortunately, the above doesn't work in PySide.
+
 class MainWindow(QMainWindow, Ui_MainWindow):
 
     #Keep track of the MainWindow objects.
-    mainWindows = set()
+    instances = list()
+    #NextID provides numbers to append to new documents: "Untitled-1.sws", "Untitled-2.sws", etc.
+    NextID = 0
+    #When the user closes the last document window, we transform the window into a Welcome window.
+    #On the other hand, if the user selects Quit, we just close the window. We use the isQuitting
+    #variable to distinguish between these two cases.
+    isQuitting = False
     
-    def __init__(self, parent=None, isWelcome=False):
+    def __init__(self, parent=None, isWelcome=False, file_name=None, isNewFile=False):
         super(MainWindow, self).__init__(parent)
 
-        #Add self to the set of open mainWindows.
-        MainWindow.mainWindows.add(self)
-        self.isQuitting = False
+        #Add self to the set of open instances.
+        MainWindow.instances.append(self)
 
-        #This window may be editing a worksheet associated to a file.
-        self.file_name = None
+        #We want to reclaim the resources of this window when it is closed.
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        #self.connect(self, SIGNAL("destroyed(QObject*)"), MainWindow.updateInstances)
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
@@ -37,14 +54,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Determines if this is a welcome page window.
         self.isWelcome = isWelcome
 
+        #titleName is the filename without the path. We need a separate entity for titleName
+        #because new worksheets do not have a true filename--they aren't files yet.
+        self.titleName = None
+
         self.setupUi()
+
+        if isNewFile:
+            self.loadNewFile()
+
+        #This window may be editing a worksheet associated to a file.
+        self.file_name = file_name
+        if self.file_name is not None:
+            self.isWelcome = True #Tricks loadFile into loading the file in the current window.
+            self.loadFile(file_name)
     
     def setupUi(self):
         #The superclass sets up most of the UI.
         super(MainWindow, self).setupUi(self)
 
         #self.setUnifiedTitleAndToolBarOnMac(True)
-        self.setWindowTitle("Guru")
 
         self.setCentralWidget(self.webViewController().webView())
         #self.__index = 0
@@ -55,6 +84,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect(self.actionOpen, SIGNAL("triggered()"), self.doActionOpen)
         self.connect(self.actionSave, SIGNAL("triggered()"), self.doActionSave)
         self.connect(self.actionSaveAs, SIGNAL("triggered()"), self.doActionSaveAs)
+        self.connect(self.actionSaveAll, SIGNAL("triggered()"), self.doActionSaveAll)
         self.connect(self.actionPrint, SIGNAL("triggered()"), self.doActionPrint)
         self.connect(self.actionQuit, SIGNAL("triggered()"), self.doActionQuit)
 
@@ -84,11 +114,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         return self._webViewController
 
-    #Make the UI changes necessary for showing the welcome page.
     def showWelcome(self):
+        #Make the UI changes necessary for showing the welcome page.
+
         #This method is only called if we're a welcome page, so...
         self.isWelcome = True
         self.file_name = None
+        self.titleName = None
+        self.setWindowTitle("Guru")
+        self.updateWindowMenu()
 
         #Hide the toolbar.
         self.toolBar.hide()
@@ -137,12 +171,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         shouldClose = False
 
-        if (self.isWelcome == False):
+        if not self.isWelcome:
             #If the worksheet is dirty, ask the user if they want to save.
             #Not implemented.
             shouldClose = True
 
-            if len(MainWindow.mainWindows) == 1 and self.isQuitting is False:
+            if len(MainWindow.instances) == 1 and MainWindow.isQuitting is False:
                 #This is the last remaining MainWindow open.
                 #Transform the current window into a welcome page.
                 shouldClose = False
@@ -157,10 +191,74 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if shouldClose:
             self.webViewController().cleanup()
-            MainWindow.mainWindows.remove(self)
+            MainWindow.instances.remove(self)
+            #We update the Window menu of each open window.
+            self.updateWindowMenu()
             event.accept()
         else:
+            #The close was cancelled.
+            MainWindow.isQuitting = False
             event.ignore()
+
+    def updateWindowMenu(self):
+        #aboutToShow() does not do what Mark Summerfield thinks it does--at least in PySide.
+
+        #Generate a list of actions to add to the Window menu.
+        window_menu_actions = []
+        for i in range(len(MainWindow.instances)):
+            window = MainWindow.instances[i]
+            action_text = "%d. %s" % (i, window.titleName)
+            window_menu_actions.append(QAction(action_text, self, triggered=self.raiseWindow))
+
+        for window in MainWindow.instances:
+            window.menu_Window.clear()
+            for new_action in window_menu_actions:
+                window.menu_Window.addAction(new_action)
+
+    def raiseWindow(self):
+        action = self.sender()
+        if not isinstance(action, QAction):
+            return
+        title_text = action.text()
+        title_text = title_text[title_text.index('.')+2:] #Peels off the initial numbering, i.e. "2. Untitled.sws".
+        for window in MainWindow.instances:
+            if window.titleName == title_text:
+                window.activateWindow()
+                window.raise_()
+                break
+
+    def setUniqueWindowTitle(self):
+        #This method does the following:
+        #   1. gets the filename of the working file, or sets it to Untitled.sws;
+        #   2. determines if there are already titleNames with that filename, and if so, how many;
+        #   3. using (1) and (2), creates a unique titleName of the form "filename.sws (n)";
+        #   4. sets the window title appropriately;
+        #   5. calls updateWindowMenu().
+
+        #1. gets the filename of the working file, or sets it to Untitled.sws;
+        if self.file_name is not None:
+            title_text = os.path.split(self.file_name)[1]
+        else:
+            title_text = "Untitled.sws"
+
+        #2. determines if there are already titleNames with that filename, and if so, how many;
+        existing_titles = [window.titleName for window in MainWindow.instances if window is not self]
+        if existing_titles.count(title_text) > 0:
+            counter = 1
+            while existing_titles.count(title_text + " (%d)"%counter) > 0:
+                print title_text + " (%d)"%counter
+                counter += 1
+            #3. using (1) and (2), creates a unique titleName of the form "filename.sws (n)";
+            title_text += " (%d)"%counter
+
+        #4. sets the window title appropriately;
+        self.setWindowTitle("Guru - %s" % title_text)
+        self.titleName = title_text
+
+        #5. calls updateWindowMenu().
+        self.updateWindowMenu()
+
+    ############### Actions ###############
 
     @Slot()
     def doActionNew(self):
@@ -171,48 +269,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.isWelcome:
             self.hideWelcome()
-            #Use this MainWindow object to create the worksheet.
-            main_window = self
+            self.loadNewFile()
         else:
             #Create a new MainWindow object to use for the new worksheet.
-            main_window = MainWindow()
+            main_window = MainWindow(isNewFile=True)
             main_window.show()
 
+    def loadNewFile(self):
         #Create a new worksheet
-        main_window.webViewController().clear()
-        main_window.webViewController().worksheet_controller = WorksheetController.withNewWorksheet(main_window.webViewController())
+        self.webViewController().newWorksheetFile()
+
+        #Set the title appropriately.
+        self.file_name = None
+        self.setUniqueWindowTitle()
+
 
     @Slot()
     def doActionOpen(self):
-        #Ideally, we should check if the current MainWindow is showing a new, clean worksheet,
-        #and if so, just delete the empty worksheet and replace it with the newly opened on.
-        #We ignore that for now.
-
         file_name = QFileDialog.getOpenFileName(self, "Open Worksheet", filter="Sage Worksheets (*.sws *.txt *.html)")[0]
 
         if not file_name:
             #User clicked cancel.
             return
 
-        #Which MainWindow object we create the new worksheet in
-        #depends on if doActionOpen() is fired on a welcome page
-        #or not.
-        main_window = None
+        #Check if the file is already opened. If it is, just raise that window.
+        window_list = [window for window in MainWindow.instances if window.file_name == file_name]
+        if len(window_list)==0:
+            #The file is not open, so open it.
+            self.loadFile(file_name)
+        else:
+            #The file is already open. Just raise its window.
+            window_list[0].activateWindow()
+            window_list[0].raise_()
+
+    def loadFile(self, file_name):
+        #Which MainWindow object we create the new worksheet in depends on if loadFile()
+        #is fired on a welcome page or not.
 
         if self.isWelcome:
+            #Use the current MainWindow object to create the worksheet.
             self.hideWelcome()
-            #Use this MainWindow object to create the worksheet.
-            main_window = self
+            #Set the working filename
+            self.file_name = file_name
+            #We set the window title.
+            self.setUniqueWindowTitle()
+            #Open the worksheet in the webView.
+            self.webViewController().openWorksheetFile(file_name)
         else:
             #Create a new MainWindow object to use for the new worksheet.
-            main_window = MainWindow()
+            main_window = MainWindow(file_name=file_name)
             main_window.show()
 
-        #Open the worksheet.
-        main_window.webViewController().openWorksheetFile(file_name)
-
-        #Set the working filename for this MainWindow instance.
-        main_window.file_name = file_name
+            main_window.activateWindow()
+            main_window.raise_()
 
     def doActionSave(self):
         if self.file_name:
@@ -235,36 +344,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.saveFile(filename)
 
+    def doActionSaveAll(self):
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+
     def saveFile(self, file_name):
         #Save the file, overwriting any existing file.
         self.webViewController().saveWorksheetFile(file_name)
 
         #Set the working filename for this MainWindow instance.
         self.file_name = file_name
+        self.titleName = os.path.split(file_name)[1]
+        self.setUniqueWindowTitle("Guru - " + self.titleName)
 
     def doActionPrint(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionQuit(self):
-        self.isQuitting = True
+        MainWindow.isQuitting = True
+        for window in MainWindow.instances:
+            window.close()
 
     def doActionCopy(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionCut(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionPaste(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionWorksheetProperties(self):
         self.showConsoles()
 
     def doActionEvaluateWorksheet(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionInterrupt(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionAbout(self):
         f = open(os.path.join(GURU_ROOT, 'guru', 'guru_about.html'))
@@ -275,5 +391,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         QMessageBox.about(self, "About Guru", message_text)
 
     def doActionSageServer(self):
-        pass
+        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+
 

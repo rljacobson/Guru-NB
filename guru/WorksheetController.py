@@ -71,7 +71,7 @@ class WorksheetController(QObject):
         self._worksheet = worksheet
 
         #self.webview_controller.show_rendered_template("html/worksheet.html")
-        print "Setting URL to %s" % self.worksheetUrl()
+        #print "Setting URL to %s" % self.worksheetUrl()
         self.webFrame.setUrl(self.worksheetUrl())
 
     def addJavascriptBridge(self):

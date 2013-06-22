@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'guru/Ui_MainWindow.ui'
 #
-# Created: Thu Jun 13 12:34:41 2013
+# Created: Fri Jun 21 19:32:42 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,19 +12,21 @@ from PySide import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1137, 1044)
+        MainWindow.resize(918, 912)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar()
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1137, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 918, 22))
         self.menubar.setObjectName("menubar")
         self.menu_File = QtGui.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
         self.menu_Edit = QtGui.QMenu(self.menubar)
         self.menu_Edit.setObjectName("menu_Edit")
-        self.menuHelp = QtGui.QMenu(self.menubar)
-        self.menuHelp.setObjectName("menuHelp")
+        self.menu_Help = QtGui.QMenu(self.menubar)
+        self.menu_Help.setObjectName("menu_Help")
+        self.menu_Window = QtGui.QMenu(self.menubar)
+        self.menu_Window.setObjectName("menu_Window")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -90,6 +92,9 @@ class Ui_MainWindow(object):
         self.actionWorksheetProperties.setIcon(icon10)
         self.actionWorksheetProperties.setObjectName("actionWorksheetProperties")
         self.actionRecent = QtGui.QAction(MainWindow)
+        icon11 = QtGui.QIcon()
+        icon11.addPixmap(QtGui.QPixmap(":/images/images/history3_30.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionRecent.setIcon(icon11)
         self.actionRecent.setObjectName("actionRecent")
         self.actionQuit = QtGui.QAction(MainWindow)
         self.actionQuit.setObjectName("actionQuit")
@@ -100,25 +105,36 @@ class Ui_MainWindow(object):
         self.actionAbout.setObjectName("actionAbout")
         self.actionOnline_Documentation = QtGui.QAction(MainWindow)
         self.actionOnline_Documentation.setObjectName("actionOnline_Documentation")
+        self.actionSaveAll = QtGui.QAction(MainWindow)
+        self.actionSaveAll.setIcon(icon2)
+        self.actionSaveAll.setObjectName("actionSaveAll")
+        self.actionClose = QtGui.QAction(MainWindow)
+        icon12 = QtGui.QIcon()
+        icon12.addPixmap(QtGui.QPixmap(":/images/images/close_30.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionClose.setIcon(icon12)
+        self.actionClose.setObjectName("actionClose")
         self.menu_File.addAction(self.actionNew)
         self.menu_File.addAction(self.actionOpen)
         self.menu_File.addAction(self.actionRecent)
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.actionSave)
         self.menu_File.addAction(self.actionSaveAs)
+        self.menu_File.addAction(self.actionSaveAll)
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.actionPrint)
         self.menu_File.addSeparator()
+        self.menu_File.addAction(self.actionClose)
         self.menu_File.addAction(self.actionQuit)
         self.menu_Edit.addAction(self.actionCopy)
         self.menu_Edit.addAction(self.actionCut)
         self.menu_Edit.addAction(self.actionPaste)
         self.menu_Edit.addSeparator()
-        self.menuHelp.addAction(self.actionAbout)
-        self.menuHelp.addAction(self.actionOnline_Documentation)
+        self.menu_Help.addAction(self.actionAbout)
+        self.menu_Help.addAction(self.actionOnline_Documentation)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Edit.menuAction())
-        self.menubar.addAction(self.menuHelp.menuAction())
+        self.menubar.addAction(self.menu_Window.menuAction())
+        self.menubar.addAction(self.menu_Help.menuAction())
         self.toolBar.addAction(self.actionNew)
         self.toolBar.addAction(self.actionOpen)
         self.toolBar.addAction(self.actionSave)
@@ -133,14 +149,15 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionWorksheetProperties)
 
         self.retranslateUi(MainWindow)
-        QtCore.QObject.connect(self.actionQuit, QtCore.SIGNAL("triggered()"), MainWindow.close)
+        QtCore.QObject.connect(self.actionClose, QtCore.SIGNAL("triggered()"), MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.menu_File.setTitle(QtGui.QApplication.translate("MainWindow", "&File", None, QtGui.QApplication.UnicodeUTF8))
         self.menu_Edit.setTitle(QtGui.QApplication.translate("MainWindow", "&Edit", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "&Help", None, QtGui.QApplication.UnicodeUTF8))
+        self.menu_Help.setTitle(QtGui.QApplication.translate("MainWindow", "&Help", None, QtGui.QApplication.UnicodeUTF8))
+        self.menu_Window.setTitle(QtGui.QApplication.translate("MainWindow", "&Window", None, QtGui.QApplication.UnicodeUTF8))
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setText(QtGui.QApplication.translate("MainWindow", "&Open...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOpen.setToolTip(QtGui.QApplication.translate("MainWindow", "Open a worksheet", None, QtGui.QApplication.UnicodeUTF8))
@@ -177,5 +194,7 @@ class Ui_MainWindow(object):
         self.actionSaveAs.setToolTip(QtGui.QApplication.translate("MainWindow", "Save As...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAbout.setText(QtGui.QApplication.translate("MainWindow", "&About", None, QtGui.QApplication.UnicodeUTF8))
         self.actionOnline_Documentation.setText(QtGui.QApplication.translate("MainWindow", "Online Documentation", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSaveAll.setText(QtGui.QApplication.translate("MainWindow", "Save All", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionClose.setText(QtGui.QApplication.translate("MainWindow", "Close", None, QtGui.QApplication.UnicodeUTF8))
 
-import resources
+import resources_rc

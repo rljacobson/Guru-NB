@@ -62,6 +62,11 @@ class WebViewController(QObject):
         #Save the file, overwriting any existing file.
         self.worksheet_controller.saveWorksheet(file_name)
 
+    def newWorksheetFile(self):
+        #Create a new worksheet.
+        self.clear()
+        self.worksheet_controller = WorksheetController.withNewWorksheet(self)
+
     def webPageError(self, reply):
         print "Web page error: %s" % reply.error()
 

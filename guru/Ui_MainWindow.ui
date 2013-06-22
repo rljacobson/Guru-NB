@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1137</width>
-    <height>1044</height>
+    <width>918</width>
+    <height>912</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1137</width>
+     <width>918</width>
      <height>22</height>
     </rect>
    </property>
@@ -33,9 +33,11 @@
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
+    <addaction name="actionSaveAll"/>
     <addaction name="separator"/>
     <addaction name="actionPrint"/>
     <addaction name="separator"/>
+    <addaction name="actionClose"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
@@ -47,16 +49,22 @@
     <addaction name="actionPaste"/>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="menuHelp">
+   <widget class="QMenu" name="menu_Help">
     <property name="title">
      <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout"/>
     <addaction name="actionOnline_Documentation"/>
    </widget>
+   <widget class="QMenu" name="menu_Window">
+    <property name="title">
+     <string>&amp;Window</string>
+    </property>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
-   <addaction name="menuHelp"/>
+   <addaction name="menu_Window"/>
+   <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -242,6 +250,10 @@
    </property>
   </action>
   <action name="actionRecent">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/images/images/history3_30.png</normaloff>:/images/images/history3_30.png</iconset>
+   </property>
    <property name="text">
     <string>Recent</string>
    </property>
@@ -273,13 +285,31 @@
     <string>Online Documentation</string>
    </property>
   </action>
+  <action name="actionSaveAll">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/images/images/save.png</normaloff>:/images/images/save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save All</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/images/images/close_30.png</normaloff>:/images/images/close_30.png</iconset>
+   </property>
+   <property name="text">
+    <string>Close</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="resources.qrc"/>
  </resources>
  <connections>
   <connection>
-   <sender>actionQuit</sender>
+   <sender>actionClose</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>close()</slot>
