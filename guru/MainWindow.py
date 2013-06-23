@@ -2,7 +2,7 @@ import platform
 import os
 
 from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction)
-from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt)
+from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt, QObject)
 #The next two are imported as their PyQt names.
 from PySide import __version__ as PYSIDE_VERSION_STR
 from PySide.QtCore import __version__ as QT_VERSION_STR
@@ -13,16 +13,38 @@ from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
 from guru.globals import GURU_ROOT
 
+#For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
+#of the WebView results in a segfault when the parent is destroyed. We get around
+#this with a dummy class.
+class WelcomeHandler(QObject):
+    def __init__(self, parent=None):
+        super(WelcomeHandler, self).__init__(parent)
+        self.NewFunction = None
+        self.OpenFunction = None
+        self.RecentFunction = None
 
-def isAlive(qobj):
-    # #If this object has been completely destroyed, returns False.
-    # import sip
-    # try:
-    #     sip.unwrapinstance(qobj)
-    # except RuntimeError:
-    #     return False
-    # return True
-    return True #Unfortunately, the above doesn't work in PySide.
+    @Slot()
+    def New(self):
+        if self.NewFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.NewFunction()
+
+    @Slot()
+    def Open(self):
+        if self.OpenFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.OpenFunction()
+
+    @Slot(int)
+    def Recent(self, recent_number):
+        if self.RecentFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.RecentFunction(recent_number)
+
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
@@ -43,13 +65,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #We want to reclaim the resources of this window when it is closed.
         self.setAttribute(Qt.WA_DeleteOnClose)
-        #self.connect(self, SIGNAL("destroyed(QObject*)"), MainWindow.updateInstances)
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
 
         #Lazy instantiation. Seems unnecessary at this point, to be honest.
         self._webViewController = None
+
+        #See the WelcomeHandler class for more information.
+        self._welcomeHandler = None
 
         #Determines if this is a welcome page window.
         self.isWelcome = isWelcome
@@ -130,11 +154,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Disable the relevant actions.
         self.enableEditingActions(False)
 
+        #Hook up the javscript bridge.
+        if self._welcomeHandler is None:
+            self._welcomeHandler = WelcomeHandler(self)
+            self._welcomeHandler.NewFunction = self.doActionNew
+            self._welcomeHandler.OpenFunction = self.doActionOpen
+        self.connect(self.webViewController().webView().page().mainFrame(), SIGNAL("javaScriptWindowObjectCleared()"), self.addJavascriptBridge)
+
         #Display the welcome page.
         self.webViewController().showHtmlFile("guru_welcome.html")
 
-        #Hook up the javscript bridge.
-        #self.webViewController().webView().page().mainFrame().addToJavaScriptWindowObject("GuruWelcome", self)
+
+    def addJavascriptBridge(self):
+        #This method is called whenever new content is loaded into the webFrame.
+        #Each time this happens, we need to reconnect the Python-javascript bridge.
+        self.webViewController().webView().page().mainFrame().addToJavaScriptWindowObject("GuruWelcome", self._welcomeHandler)
 
     #This is the counterpart to showWelcome(). It undoes the UI changes
     #that showWelcome() does. Probably a silly name.
