@@ -70,8 +70,7 @@ class WorksheetController(QObject):
             worksheet._notebook = guru_notebook
         self._worksheet = worksheet
 
-        #self.webview_controller.show_rendered_template("html/worksheet.html")
-        #print "Setting URL to %s" % self.worksheetUrl()
+        #Open the worksheet in the webView
         self.webFrame.setUrl(self.worksheetUrl())
 
     def addJavascriptBridge(self):
@@ -82,7 +81,9 @@ class WorksheetController(QObject):
     @Slot(str, str)
     def asyncRequest(self, url, postvars):
         #This is the counterpart to sagenb.async_request() in sagenb.js.
-        #The original sagenb.async_request() made an ajax request.
+        #The original sagenb.async_request() made an ajax request. We can
+        #significantly improve performance by calling this python method
+        #directly and bypassing the Flask server.
 
         #Log the request to the Ajax console.
         console_text = "url: %s\n" % url
@@ -94,22 +95,23 @@ class WorksheetController(QObject):
         self.webview_controller.putAjaxConsole(console_text)
 
         #The url encodes the command. They look like:
-        #   url = "/home/Robert_Jacobson/0/worksheet_properties"
-        #or
-        #   url = "/home//worksheet_properties"
-        command = url.split("//")[1]
+        #   url = "/home/admin/0/worksheet_properties"
+
+        command = url.split("/")[-1]
         result = worksheet_commands[command](self, self._worksheet)
         self.webview_controller.putAjaxConsole("result: " + result + "\n")
         javascript = "Guru.callback('success', '%s');" %  result
         self.webFrame.evaluateJavaScript(javascript)
+
+    @Slot(str)
+    def putAjaxConsole(self, text):
+        self.webview_controller.putAjaxConsole(text + "\n")
 
     def cleanup(self):
         #This method is called when this WorksheetController instance is about
         #to be eligible for garbage collection.
         WorksheetController.worksheet_count -= 1
         if self._worksheet is not None:
-            #Stop the javascript from interacting with this object.
-            self.webFrame.setHtml("")
             #Now remove the worksheet.
             self._worksheet.quit()
             self._worksheet = None
@@ -130,6 +132,8 @@ class WorksheetController(QObject):
 
     ########### WORKSHEET COMMANDS ###########
     def worksheet_command(target):
+        #This decorator registers the command as a command that the worksheet controller
+        #knows how to handle.
 
         def decorator(f):
             #Register the worksheet command.

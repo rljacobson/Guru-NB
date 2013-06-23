@@ -81,6 +81,18 @@ sagenb.hide_connection_error = function() {
 };
 
 sagenb.async_request = function(url, callback, postvars) {
+    /*
+    Guru.callback = callback;
+    Guru.encodedPostvars = encode_response(postvars);
+    Guru.url = url;
+    //We make the request synchronously. Asynchronous requests fail on
+    //"worksheet_properties" for reasons unknown.
+    Guru.asyncRequest(Guru.url,Guru.encodedPostvars);
+    //We make the request asynchronously.
+    //setTimeout("Guru.asyncRequest(Guru.url,Guru.encodedPostvars)", 0);
+    */
+
+
     var settings = {
         url: url,
         async: true,
@@ -93,6 +105,8 @@ sagenb.async_request = function(url, callback, postvars) {
             callback("failure", errorThrown);
         };
         settings.success = function (data, textStatus) {
+            Guru.putAjaxConsole("RESPONSE:");
+            Guru.putAjaxConsole(data)
             callback("success", data);
         };
     }
@@ -104,7 +118,11 @@ sagenb.async_request = function(url, callback, postvars) {
         settings.type = "GET";
     }
 
+    Guru.putAjaxConsole("COMMAND: " + url);
+    Guru.putAjaxConsole("POSTVARS:");
+    Guru.putAjaxConsole(encode_response(postvars));
     $.ajax(settings);
+
 }
 sagenb.generic_callback = function(extra_callback) {
 	/* Constructs a generic callback function. The extra_callback

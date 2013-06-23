@@ -108,9 +108,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def webViewController(self):
         #Why am I creating a new webViewController if there is none?
-        if self._webViewController==None:
-            self._webViewController = WebViewController(putAjaxConsole = self.consoles_window.putAjaxMessage, putSageConsole = self.consoles_window.putSageProcessMessage)
-            #self._webViewController = WebViewController(putAjaxConsole = self.simpleConsole, putSageConsole = self.simpleConsole)
+        if self._webViewController is None:
+            #self._webViewController = WebViewController(putAjaxConsole = self.consoles_window.putAjaxMessage, putSageConsole = self.consoles_window.putSageProcessMessage)
+            self._webViewController = WebViewController(putAjaxConsole = self.simpleConsole, putSageConsole = self.simpleConsole)
 
         return self._webViewController
 
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #This method is only called if we're a welcome page, so...
         self.isWelcome = True
         self.file_name = None
-        self.titleName = None
+        self.titleName = "Welcome"
         self.setWindowTitle("Guru")
         self.updateWindowMenu()
 
@@ -184,15 +184,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.showWelcome()
 
         else:
-            if self._webViewController is not None:
-                self._webViewController.cleanup()
-            #super(MainWindow, self).closeEvent(event)
             shouldClose = True
 
         if shouldClose:
-            self.webViewController().cleanup()
+            if self._webViewController:
+                self._webViewController.cleanup()
+
             MainWindow.instances.remove(self)
-            #We update the Window menu of each open window.
             self.updateWindowMenu()
             event.accept()
         else:
@@ -362,7 +360,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         MainWindow.isQuitting = True
 
         while MainWindow.instances:
-            window = MainWindow.instances[0]
+            window = MainWindow.instances[-1]
             if not window.close():
                 break
 

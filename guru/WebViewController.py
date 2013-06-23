@@ -83,9 +83,6 @@ class WebViewController(QObject):
         if self.worksheet_controller:
             self.worksheet_controller.cleanup()
         self.worksheet_controller = None
-        #If I don't do this we segfault because the javascript Bridge tries to reference an
-        #invalid pointer once this instance is garbage collected.
-        self._webView.setHtml("")
 
     def clear(self):
         if self.worksheet_controller is not None:
