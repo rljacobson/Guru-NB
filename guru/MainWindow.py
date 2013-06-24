@@ -82,6 +82,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #because new worksheets do not have a true filename--they aren't files yet.
         self.titleName = None
 
+        self.isDirty = False
+
         self.setupUi()
 
         if isNewFile:
@@ -131,10 +133,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.showWelcome()
 
     def webViewController(self):
-        #Why am I creating a new webViewController if there is none?
+        #Why am I using lazy instantiation here? We'll leave it like this for now.
         if self._webViewController is None:
-            #self._webViewController = WebViewController(putAjaxConsole = self.consoles_window.putAjaxMessage, putSageConsole = self.consoles_window.putSageProcessMessage)
-            self._webViewController = WebViewController(putAjaxConsole = self.simpleConsole, putSageConsole = self.simpleConsole)
+            self._webViewController = WebViewController(putAjaxConsole = self.consoles_window.putAjaxMessage, putSageConsole = self.consoles_window.putSageProcessMessage)
+            #self._webViewController = WebViewController(putAjaxConsole = self.simpleConsole, putSageConsole = self.simpleConsole)
 
         return self._webViewController
 
@@ -146,6 +148,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.file_name = None
         self.titleName = "Welcome"
         self.setWindowTitle("Guru")
+        self.dirty(False)
         self.updateWindowMenu()
 
         #Hide the toolbar.
@@ -203,14 +206,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     #This method is called whenever the window is closed.
     def closeEvent(self, event):
-        shouldClose = False
+        shouldClose = True
 
         if not self.isWelcome:
-            #If the worksheet is dirty, ask the user if they want to save.
-            #Not implemented.
-            shouldClose = True
+            if self.isDirty:
+                #If the worksheet is dirty, ask the user if they want to save.
+                response = QMessageBox.question(self, "Guru - Unsaved Changes",
+                                                "You have unsaved changes. Close anyway?",
+                                                QMessageBox.Ok|QMessageBox.Cancel)
+                if response == QMessageBox.Ok:
+                    shouldClose = True
+                else:
+                    shouldClose = False
 
-            if len(MainWindow.instances) == 1 and MainWindow.isQuitting is False:
+            if len(MainWindow.instances) == 1 and MainWindow.isQuitting is False and shouldClose is True:
                 #This is the last remaining MainWindow open.
                 #Transform the current window into a welcome page.
                 shouldClose = False
@@ -269,9 +278,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #1. gets the filename of the working file, or sets it to Untitled.sws;
         if self.file_name is not None:
-            title_text = os.path.split(self.file_name)[1]
+            title_text = os.path.basename(self.file_name)
         else:
             title_text = "Untitled.sws"
+
+        title_text += "[*]" #Dirty flag.
 
         #2. determines if there are already titleNames with that filename, and if so, how many;
         existing_titles = [window.titleName for window in MainWindow.instances if window is not self]
@@ -288,6 +299,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #5. calls updateWindowMenu().
         self.updateWindowMenu()
+
+    #@Slot(bool)
+    def dirty(self, isDirty):
+        self.isDirty = isDirty
+        self.setWindowModified(isDirty)
 
     ############### Actions ###############
 
@@ -309,6 +325,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def loadNewFile(self):
         #Create a new worksheet
         self.webViewController().newWorksheetFile()
+        self.dirty(False)
+        self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
 
         #Set the title appropriately.
         self.file_name = None
@@ -346,6 +364,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.setUniqueWindowTitle()
             #Open the worksheet in the webView.
             self.webViewController().openWorksheetFile(file_name)
+            #Set the dirty flag handler.
+            self.dirty(False)
+            self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
         else:
             #Create a new MainWindow object to use for the new worksheet.
             main_window = MainWindow(file_name=file_name)
@@ -384,8 +405,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #Set the working filename for this MainWindow instance.
         self.file_name = file_name
-        self.titleName = os.path.split(file_name)[1]
-        self.setUniqueWindowTitle("Guru - " + self.titleName)
+        self.setUniqueWindowTitle()
 
     def doActionPrint(self):
         QMessageBox.information(self, "Not Implemented", "Not implemented.")

@@ -39,6 +39,9 @@ class WorksheetController(QObject):
         self.connect(self.webFrame, SIGNAL("javaScriptWindowObjectCleared()"), self.addJavascriptBridge)
         self.request_values = None
 
+        self.isDirty = False
+        self.cleanState = 0
+
         #Set up the local notebook and worksheet.
         #I need a better tmp directory.
         if guru_notebook is None:
@@ -70,6 +73,10 @@ class WorksheetController(QObject):
             worksheet._notebook = guru_notebook
         self._worksheet = worksheet
 
+        #Handle the dirty status of the worksheet.
+        self.isDirty = False
+        self.cleanState = worksheet.state_number()
+
         #Open the worksheet in the webView
         self.webFrame.setUrl(self.worksheetUrl())
 
@@ -85,23 +92,36 @@ class WorksheetController(QObject):
         #significantly improve performance by calling this python method
         #directly and bypassing the Flask server.
 
-        #Log the request to the Ajax console.
-        console_text = "url: %s\n" % url
-        if postvars != "":
-            #Log
-            self.request_values = json.loads(postvars)
-            console_text += ("decoded postvars: %s\n"%self.request_values)
-            
-        self.webview_controller.putAjaxConsole(console_text)
+        if False:
+            #Handle the command ourselves.
 
-        #The url encodes the command. They look like:
-        #   url = "/home/admin/0/worksheet_properties"
+            #Log the request to the Ajax console.
+            console_text = "url: %s\n" % url
+            if postvars != "":
+                #Log
+                self.request_values = json.loads(postvars)
+                console_text += ("decoded postvars: %s\n"%self.request_values)
 
-        command = url.split("/")[-1]
-        result = worksheet_commands[command](self, self._worksheet)
-        self.webview_controller.putAjaxConsole("result: " + result + "\n")
-        javascript = "Guru.callback('success', '%s');" %  result
-        self.webFrame.evaluateJavaScript(javascript)
+            self.webview_controller.putAjaxConsole(console_text)
+
+            #The url encodes the command. They look like:
+            #   url = "/home/admin/0/worksheet_properties"
+            command = url.split("/")[-1]
+            result = worksheet_commands[command](self, self._worksheet)
+            self.webview_controller.putAjaxConsole("result: " + result + "\n")
+            javascript = "Guru.callback('success', '%s');" %  result
+            self.webFrame.evaluateJavaScript(javascript)
+
+        else:
+            #Let the Sage Notebook Server handle the request as usual.
+
+            javascript = "sagenb.guru_async_request(Guru.url, Guru.callback, Guru.postvars);"
+            self.webFrame.evaluateJavaScript(javascript)
+
+        #Check and see if the operation has made the worksheet dirty. If so, emit a "dirty" signal.
+        if self._worksheet.state_number() > self.cleanState and self.isDirty == False:
+            self.isDirty = True
+            self.emit(SIGNAL("dirty(bool)"), True)
 
     @Slot(str)
     def putAjaxConsole(self, text):
@@ -121,6 +141,11 @@ class WorksheetController(QObject):
         if os.path.exists(file_name):
             os.remove(file_name) #This may be unnecessary.
         self.worksheet_download(self._worksheet, file_name)
+
+        #The worksheet is no longer dirty.
+        self.isDirty = False
+        self.cleanState = self._worksheet.state_number()
+        self.emit(SIGNAL("dirty(bool)"), False)
 
     def worksheetUrl(self):
         if self._worksheet is None:
