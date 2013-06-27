@@ -2,7 +2,7 @@ import platform
 import os
 
 from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction)
-from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt, QObject)
+from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt, QObject, QSettings)
 #The next two are imported as their PyQt names.
 from PySide import __version__ as PYSIDE_VERSION_STR
 from PySide.QtCore import __version__ as QT_VERSION_STR
@@ -56,7 +56,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     #On the other hand, if the user selects Quit, we just close the window. We use the isQuitting
     #variable to distinguish between these two cases.
     isQuitting = False
-    
+
+    recentFiles = []
+
     def __init__(self, parent=None, isWelcome=False, file_name=None, isNewFile=False):
         super(MainWindow, self).__init__(parent)
 
@@ -65,6 +67,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #We want to reclaim the resources of this window when it is closed.
         self.setAttribute(Qt.WA_DeleteOnClose)
+
+        self.file_name = file_name
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
@@ -86,11 +90,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.setupUi()
 
+        if self.isWelcome:
+            self.restoreSettings()
+
         if isNewFile:
             self.loadNewFile()
 
         #This window may be editing a worksheet associated to a file.
-        self.file_name = file_name
         if self.file_name is not None:
             self.isWelcome = True #Tricks loadFile into loading the file in the current window.
             self.loadFile(file_name)
@@ -102,7 +108,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #self.setUnifiedTitleAndToolBarOnMac(True)
 
         self.setCentralWidget(self.webViewController().webView())
-        #self.__index = 0
 
         #Connect all the actions.
         #File actions
@@ -136,6 +141,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.isWelcome:
             #Display the welcome screen.
             self.showWelcome()
+
+    def restoreSettings(self):
+        settings = QSettings()
+        MainWindow.recentFiles = settings.value("RecentFiles")
+        if MainWindow.recentFiles is None:
+            MainWindow.recentFiles = []
+        self.restoreGeometry(settings.value("MainWindow/Geometry"))
+        self.restoreState(settings.value("MainWindow/State"))
+        self.updateRecentFilesMenu()
+
+    def saveSettings(self):
+        settings = QSettings()
+        settings.setValue("RecentFiles", MainWindow.recentFiles)
+        settings.setValue("MainWindow/Geometry", self.saveGeometry())
+        settings.setValue("MainWindow/State", self.saveState())
 
     def webViewController(self):
         #Why am I using lazy instantiation here? We'll leave it like this for now.
@@ -215,6 +235,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #File Menu
         self.actionPrint.setEnabled(enabling)
         self.actionSaveAs.setEnabled(enabling)
+        self.actionSaveAll.setEnabled(enabling)
 
 
     def showConsoles(self):
@@ -253,22 +274,68 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self._webViewController.cleanup()
 
             MainWindow.instances.remove(self)
-            self.updateWindowMenu()
+            #Is this the last window to close?
+            if not MainWindow.instances:
+                #This is the last window, so save application settings.
+                self.saveSettings()
+            else:
+                #This is not the last window, so update the Window menu.
+                self.updateWindowMenu()
             event.accept()
         else:
             #The close was cancelled.
             MainWindow.isQuitting = False
             event.ignore()
 
+    def updateRecentFilesMenu(self):
+        #If there is a current file open, add it to the recent files list.
+        if self.file_name and MainWindow.recentFiles.count(self.file_name) == 0:
+            #Prepend the file to recentFiles
+            MainWindow.recentFiles.insert(0, self.file_name)
+            #This this is the only time files get added to recentFiles,
+            #enforce the maximum length of recentFiles now.
+            while len(MainWindow.recentFiles) > 9:
+                MainWindow.recentFiles.pop()
+
+        recent_files = []
+
+        #For each file in recentFiles, check that it exists and is readable.
+        for fname in MainWindow.recentFiles:
+            if os.access(fname, os.F_OK):
+                recent_files.append(fname)
+
+        MainWindow.recentFiles = recent_files
+
+        #Now create an action for each file.
+        if recent_files:
+            action_list = []
+            for i, fname in enumerate(recent_files):
+                new_action = QAction("%d. %s"%(i, fname), self, triggered=self.openRecentFile)
+                new_action.setData(fname)
+                action_list.append(new_action)
+            #Now update the recent files menu on every window.
+            for window in MainWindow.instances:
+                window.menuRecent.clear()
+                window.menuRecent.addActions(action_list)
+
+    def openRecentFile(self):
+        action = self.sender()
+        if not isinstance(action, QAction):
+            return
+        self.loadFile(action.data())
+
     def updateWindowMenu(self):
         #aboutToShow() does not do what Mark Summerfield thinks it does--at least in PySide.
 
         #Generate a list of actions to add to the Window menu.
         window_menu_actions = []
-        for i in range(len(MainWindow.instances)):
-            window = MainWindow.instances[i]
-            action_text = "%d. %s" % (i, window.titleName)
-            window_menu_actions.append(QAction(action_text, self, triggered=self.raiseWindow))
+        for i, window in enumerate(MainWindow.instances):
+            #The following line removes the "[*]" from the titleName.
+            title_name = ''.join(window.titleName.split("[*]"))
+            action_text = "%d. %s" % (i, title_name)
+            new_action = QAction(action_text, self, triggered=self.raiseWindow)
+            new_action.setData(window.titleName)
+            window_menu_actions.append(new_action)
 
         for window in MainWindow.instances:
             window.menuWindow.clear()
@@ -279,10 +346,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         action = self.sender()
         if not isinstance(action, QAction):
             return
-        title_text = action.text()
-        title_text = title_text[title_text.index('.')+2:] #Peels off the initial numbering, i.e. "2. Untitled.sws".
+        title_name = action.data()
+        #title_text = title_text[title_text.index('.')+2:] #Peels off the initial numbering, i.e. "2. Untitled.sws".
         for window in MainWindow.instances:
-            if window.titleName == title_text:
+            if window.titleName == title_name:
                 window.activateWindow()
                 window.raise_()
                 break
@@ -386,6 +453,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             #Set the dirty flag handler.
             self.dirty(False)
             self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
+            self.updateRecentFilesMenu()
         else:
             #Create a new MainWindow object to use for the new worksheet.
             main_window = MainWindow(file_name=file_name)
@@ -401,8 +469,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.doActionSaveAs()
 
     def doActionSaveAs(self):
+        if self.file_name:
+            suggested_filename = self.file_name
+        else:
+            suggested_filename = self.webViewController().worksheet_controller.getTitle()
+            #Make sure the file extension is in the filename.
+            if not suggested_filename.endswith(".sws"):
+                suggested_filename += ".sws"
+
+        suggested_filename = os.path.join(os.curdir, suggested_filename)
+
         #getSaveFileName([parent=None[, caption=""[, dir=""[, filter=""[, selectedFilter=""[, options=0]]]]]])
-        filename = QFileDialog.getSaveFileName(self, "Save Worksheet",
+        filename = QFileDialog.getSaveFileName(self, caption="Save Worksheet",
+                                               dir=suggested_filename,
                                                filter="Sage Worksheet (*.sws);;All files (*)",
                                                selectedFilter="Sage Worksheets (*.sws)")[0]
         if not filename:
@@ -426,6 +505,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Set the working filename for this MainWindow instance.
         self.file_name = file_name
         self.setUniqueWindowTitle()
+
+        self.updateRecentFilesMenu()
 
     def doActionPrint(self):
         QMessageBox.information(self, "Not Implemented", "Not implemented.")

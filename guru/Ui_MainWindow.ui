@@ -27,9 +27,14 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="menuRecent">
+     <property name="title">
+      <string>Recent</string>
+     </property>
+    </widget>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
-    <addaction name="actionRecent"/>
+    <addaction name="menuRecent"/>
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
@@ -263,15 +268,6 @@
     <string>Edit the properties of the worksheet</string>
    </property>
   </action>
-  <action name="actionRecent">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/images/images/history3_30.png</normaloff>:/images/images/history3_30.png</iconset>
-   </property>
-   <property name="text">
-    <string>Recent</string>
-   </property>
-  </action>
   <action name="actionQuit">
    <property name="text">
     <string>&amp;Quit</string>
@@ -349,6 +345,11 @@
    </property>
    <property name="text">
     <string>Restart Worksheet</string>
+   </property>
+  </action>
+  <action name="actionTest_sws">
+   <property name="text">
+    <string>test.sws</string>
    </property>
   </action>
  </widget>

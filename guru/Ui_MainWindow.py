@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'guru/Ui_MainWindow.ui'
 #
-# Created: Wed Jun 26 20:42:17 2013
+# Created: Thu Jun 27 17:59:01 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -21,6 +21,8 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.menu_File = QtGui.QMenu(self.menubar)
         self.menu_File.setObjectName("menu_File")
+        self.menuRecent = QtGui.QMenu(self.menu_File)
+        self.menuRecent.setObjectName("menuRecent")
         self.menu_Edit = QtGui.QMenu(self.menubar)
         self.menu_Edit.setObjectName("menu_Edit")
         self.menuHelp = QtGui.QMenu(self.menubar)
@@ -93,11 +95,6 @@ class Ui_MainWindow(object):
         icon10.addPixmap(QtGui.QPixmap(":/images/images/processing-02.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.actionWorksheetProperties.setIcon(icon10)
         self.actionWorksheetProperties.setObjectName("actionWorksheetProperties")
-        self.actionRecent = QtGui.QAction(MainWindow)
-        icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap(":/images/images/history3_30.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionRecent.setIcon(icon11)
-        self.actionRecent.setObjectName("actionRecent")
         self.actionQuit = QtGui.QAction(MainWindow)
         self.actionQuit.setObjectName("actionQuit")
         self.actionSaveAs = QtGui.QAction(MainWindow)
@@ -111,9 +108,9 @@ class Ui_MainWindow(object):
         self.actionSaveAll.setIcon(icon2)
         self.actionSaveAll.setObjectName("actionSaveAll")
         self.actionClose = QtGui.QAction(MainWindow)
-        icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap(":/images/images/close_30.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionClose.setIcon(icon12)
+        icon11 = QtGui.QIcon()
+        icon11.addPixmap(QtGui.QPixmap(":/images/images/close_30.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionClose.setIcon(icon11)
         self.actionClose.setObjectName("actionClose")
         self.actionHideAllOutput = QtGui.QAction(MainWindow)
         self.actionHideAllOutput.setObjectName("actionHideAllOutput")
@@ -126,13 +123,15 @@ class Ui_MainWindow(object):
         self.actionInterrupt_Evaluation = QtGui.QAction(MainWindow)
         self.actionInterrupt_Evaluation.setObjectName("actionInterrupt_Evaluation")
         self.actionRestartWorksheet = QtGui.QAction(MainWindow)
-        icon13 = QtGui.QIcon()
-        icon13.addPixmap(QtGui.QPixmap(":/images/images/reload.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionRestartWorksheet.setIcon(icon13)
+        icon12 = QtGui.QIcon()
+        icon12.addPixmap(QtGui.QPixmap(":/images/images/reload.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionRestartWorksheet.setIcon(icon12)
         self.actionRestartWorksheet.setObjectName("actionRestartWorksheet")
+        self.actionTest_sws = QtGui.QAction(MainWindow)
+        self.actionTest_sws.setObjectName("actionTest_sws")
         self.menu_File.addAction(self.actionNew)
         self.menu_File.addAction(self.actionOpen)
-        self.menu_File.addAction(self.actionRecent)
+        self.menu_File.addAction(self.menuRecent.menuAction())
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.actionSave)
         self.menu_File.addAction(self.actionSaveAs)
@@ -181,6 +180,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.menu_File.setTitle(QtGui.QApplication.translate("MainWindow", "&File", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuRecent.setTitle(QtGui.QApplication.translate("MainWindow", "Recent", None, QtGui.QApplication.UnicodeUTF8))
         self.menu_Edit.setTitle(QtGui.QApplication.translate("MainWindow", "&Edit", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "&Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuWindow.setTitle(QtGui.QApplication.translate("MainWindow", "&Window", None, QtGui.QApplication.UnicodeUTF8))
@@ -215,7 +215,6 @@ class Ui_MainWindow(object):
         self.actionInterrupt.setToolTip(QtGui.QApplication.translate("MainWindow", "Interrupt cell evaluation", None, QtGui.QApplication.UnicodeUTF8))
         self.actionWorksheetProperties.setText(QtGui.QApplication.translate("MainWindow", "Worksheet Properties", None, QtGui.QApplication.UnicodeUTF8))
         self.actionWorksheetProperties.setToolTip(QtGui.QApplication.translate("MainWindow", "Edit the properties of the worksheet", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionRecent.setText(QtGui.QApplication.translate("MainWindow", "Recent", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setText(QtGui.QApplication.translate("MainWindow", "&Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSaveAs.setText(QtGui.QApplication.translate("MainWindow", "Save &As...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSaveAs.setToolTip(QtGui.QApplication.translate("MainWindow", "Save As...", None, QtGui.QApplication.UnicodeUTF8))
@@ -229,5 +228,6 @@ class Ui_MainWindow(object):
         self.actionEvaluate_All_Cells.setText(QtGui.QApplication.translate("MainWindow", "Evaluate Worksheet", None, QtGui.QApplication.UnicodeUTF8))
         self.actionInterrupt_Evaluation.setText(QtGui.QApplication.translate("MainWindow", "Interrupt Evaluation", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRestartWorksheet.setText(QtGui.QApplication.translate("MainWindow", "Restart Worksheet", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionTest_sws.setText(QtGui.QApplication.translate("MainWindow", "test.sws", None, QtGui.QApplication.UnicodeUTF8))
 
 import resources_rc

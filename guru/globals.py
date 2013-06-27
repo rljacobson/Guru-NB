@@ -19,6 +19,9 @@ sys.path.append(lib_path)
 import sagenb.misc.misc
 sagenb.misc.misc.DOT_SAGENB = GURU_NOTEBOOK_DIR
 
+#Should we set the current directory to the user's home directory?
+#os.curdir = os.path.expanduser("~")
+
 ############### Local Notebook ###############
 from sagenb.notebook.notebook import Notebook
 

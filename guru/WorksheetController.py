@@ -158,6 +158,9 @@ class WorksheetController(QObject):
         url = "http://localhost:%(port)s/home/%(username)s/%(idnum)s/" % url_vars
         return url
 
+    def getTitle(self):
+        return self._worksheet.name()
+
     ########### FILE MENU WORKSHEET COMMANDS ###########
 
     def evaluateAll(self):
