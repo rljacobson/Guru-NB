@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>918</width>
-    <height>912</height>
+    <width>1193</width>
+    <height>955</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>918</width>
+     <width>1193</width>
      <height>22</height>
     </rect>
    </property>
@@ -49,22 +49,35 @@
     <addaction name="actionPaste"/>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="menu_Help">
+   <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout"/>
-    <addaction name="actionOnline_Documentation"/>
+    <addaction name="actionOnlineDocumentation"/>
    </widget>
-   <widget class="QMenu" name="menu_Window">
+   <widget class="QMenu" name="menuWindow">
     <property name="title">
      <string>&amp;Window</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuWorksheet">
+    <property name="title">
+     <string>Worksheet</string>
+    </property>
+    <addaction name="actionHideAllOutput"/>
+    <addaction name="actionShowAllOutput"/>
+    <addaction name="actionDeleteAllOutput"/>
+    <addaction name="separator"/>
+    <addaction name="actionEvaluateWorksheet"/>
+    <addaction name="actionInterrupt"/>
+    <addaction name="actionRestartWorksheet"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
-   <addaction name="menu_Window"/>
-   <addaction name="menu_Help"/>
+   <addaction name="menuWorksheet"/>
+   <addaction name="menuWindow"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -72,7 +85,7 @@
     <string>toolBar</string>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextBesideIcon</enum>
+    <enum>Qt::ToolButtonIconOnly</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
@@ -93,6 +106,7 @@
    <addaction name="separator"/>
    <addaction name="actionEvaluateWorksheet"/>
    <addaction name="actionInterrupt"/>
+   <addaction name="separator"/>
    <addaction name="actionSageServer"/>
    <addaction name="actionWorksheetProperties"/>
   </widget>
@@ -280,7 +294,7 @@
     <string>&amp;About</string>
    </property>
   </action>
-  <action name="actionOnline_Documentation">
+  <action name="actionOnlineDocumentation">
    <property name="text">
     <string>Online Documentation</string>
    </property>
@@ -301,6 +315,40 @@
    </property>
    <property name="text">
     <string>Close</string>
+   </property>
+  </action>
+  <action name="actionHideAllOutput">
+   <property name="text">
+    <string>Hide All Output</string>
+   </property>
+  </action>
+  <action name="actionShowAllOutput">
+   <property name="text">
+    <string>Show All Output</string>
+   </property>
+  </action>
+  <action name="actionDeleteAllOutput">
+   <property name="text">
+    <string>Delete All Output</string>
+   </property>
+  </action>
+  <action name="actionEvaluate_All_Cells">
+   <property name="text">
+    <string>Evaluate Worksheet</string>
+   </property>
+  </action>
+  <action name="actionInterrupt_Evaluation">
+   <property name="text">
+    <string>Interrupt Evaluation</string>
+   </property>
+  </action>
+  <action name="actionRestartWorksheet">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/images/images/reload.png</normaloff>:/images/images/reload.png</iconset>
+   </property>
+   <property name="text">
+    <string>Restart Worksheet</string>
    </property>
   </action>
  </widget>

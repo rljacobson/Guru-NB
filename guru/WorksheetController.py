@@ -92,6 +92,9 @@ class WorksheetController(QObject):
         #significantly improve performance by calling this python method
         #directly and bypassing the Flask server.
 
+        if self._worksheet is None:
+            return
+
         if False:
             #Handle the command ourselves.
 
@@ -155,7 +158,40 @@ class WorksheetController(QObject):
         url = "http://localhost:%(port)s/home/%(username)s/%(idnum)s/" % url_vars
         return url
 
-    ########### WORKSHEET COMMANDS ###########
+    ########### FILE MENU WORKSHEET COMMANDS ###########
+
+    def evaluateAll(self):
+        javascript = "sagenb.worksheetapp.worksheet.evaluate_all()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def interrupt(self):
+        javascript = "sagenb.worksheetapp.worksheet.interrupt()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def hideAllOutput(self):
+        javascript = "sagenb.worksheetapp.worksheet.hide_all_output()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def showAllOutput(self):
+        javascript = "sagenb.worksheetapp.worksheet.show_all_output()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def deleteAllOutput(self):
+        javascript = "sagenb.worksheetapp.worksheet.delete_all_output()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def restartWorksheet(self):
+        javascript = "sagenb.worksheetapp.worksheet.restart_sage()"
+        self.webFrame.evaluateJavaScript(javascript)
+
+    def typesetOutput(self, enabled):
+        #set_pretty_print takes a lowercase string.
+        if enabled:
+            self._worksheet.set_pretty_print('true')
+        else:
+            self._worksheet.set_pretty_print('false')
+
+    ########### FLASK SERVER WORKSHEET COMMANDS ###########
     def worksheet_command(target):
         #This decorator registers the command as a command that the worksheet controller
         #knows how to handle.

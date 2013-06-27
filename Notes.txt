@@ -12,11 +12,11 @@ File
 Math palette
 
 worksheet tools
-	evaluate all
+	-evaluate all
 	Hide All Output
 	Show all output
 	delete all output
-	Interrupt
+	-Interrupt
 	Restart worksheet
 
 Worksheet properties

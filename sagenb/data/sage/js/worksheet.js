@@ -825,11 +825,13 @@ sagenb.worksheetapp.worksheet = function() {
 		/* Notes on hotkeys: these don't work on all browsers consistently
 		but they are included in the best case scenario that they are all 
 		accepted. */
+        /*
 		$(document).bind("keydown", sagenb.ctrlkey + "+N", function(evt) { _this.new_worksheet(); return false; });
 		$(document).bind("keydown", sagenb.ctrlkey + "+S", function(evt) { _this.save(); return false; });
 		$(document).bind("keydown", sagenb.ctrlkey + "+W", function(evt) { _this.close(); return false; });
 		$(document).bind("keydown", sagenb.ctrlkey + "+P", function(evt) { _this.print(); return false; });
 		$(document).bind("keydown", "esc", function(evt) { _this.interrupt_with_confirm(); return false; });
+
 				
 		/////// FILE MENU ////////
 		$("#new_worksheet").click(_this.new_worksheet);
@@ -847,5 +849,6 @@ sagenb.worksheetapp.worksheet = function() {
 		$("#hide_all_output").click(_this.hide_all_output);
 		$("#show_all_output").click(_this.show_all_output);
 		$("#delete_all_output").click(_this.delete_all_output);
+		*/
 	};
 };

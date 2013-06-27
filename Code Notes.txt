@@ -10,10 +10,6 @@ UKNOWNS:
 	Docs
 	Jmol?
 
-############# Dependencies #############
-
-Python dependencies: pexpect, webassets, jinja2
-
 ############# Bugs and issues in sagenb #############
 
 Sage bugs:
@@ -52,19 +48,6 @@ Changes made to:
     
     notebook.py: In new_worksheet_process, when we return the worksheet process, we set python='sage -python'.
 
-    sagenb/data/sage/html/*.html: removed leading /'s.
-
-    base.html: Fixed reference to username.js to instead set sagenb.username directly.
-    		   Removed navbar.
+    base.html: Removed navbar.
 
     sagenb.js: Rewrote sagenb.async_request to communicate with Python-javascript bridge instead of ajax.
-
-    sagenb/data/webassets_generated/worksheet.js: Told where to find mathjax. (Do we need to do this with other javascript libraries?)
-
-	worksheet.html: Commented out jmol stuff.
-
-	load_mathjax.js: Told where to find mathjax. (Do we need to do this with other javascript libraries?)
-
-	Mathjax.js: For some reason I had to keep Mathjax from accessing cookies. ??
-
-	main.less: lesscss.js isn't @import'ing other .less files, so I put everything in one file.

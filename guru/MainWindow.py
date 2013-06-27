@@ -11,7 +11,7 @@ from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
-from guru.globals import GURU_ROOT
+from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION
 
 #For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
 #of the WebView results in a segfault when the parent is destroyed. We get around
@@ -123,9 +123,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect(self.actionWorksheetProperties, SIGNAL("triggered()"), self.doActionWorksheetProperties)
         self.connect(self.actionEvaluateWorksheet, SIGNAL("triggered()"), self.doActionEvaluateWorksheet)
         self.connect(self.actionInterrupt, SIGNAL("triggered()"), self.doActionInterrupt)
+        self.connect(self.actionRestartWorksheet, SIGNAL("triggered()"), self.doActionRestartWorksheet)
+        self.connect(self.actionHideAllOutput, SIGNAL("triggered()"), self.doActionHideAllOutput)
+        self.connect(self.actionShowAllOutput, SIGNAL("triggered()"), self.doActionShowAllOutput)
+        self.connect(self.actionDeleteAllOutput, SIGNAL("triggered()"), self.doActionDeleteAllOutput)
 
         #Miscellaneous actions
         self.connect(self.actionAbout, SIGNAL("triggered()"), self.doActionAbout)
+        self.connect(self.actionOnlineDocumentation, SIGNAL("triggered()"), self.doActionOnlineDocumentation)
         self.connect(self.actionSageServer, SIGNAL("triggered()"), self.doActionSageServer)
 
         if self.isWelcome:
@@ -186,14 +191,28 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     #The editing actions are only relevant if we are editing a worksheet.
     #Otherwise (i.e. for the welcome page), they should be disabled.
     def enableEditingActions(self, enabling=True):
+
+        #Worksheet Menu
+        self.actionInterrupt.setEnabled(enabling)
+        self.actionHideAllOutput.setEnabled(enabling)
+        self.actionShowAllOutput.setEnabled(enabling)
+        self.actionDeleteAllOutput.setEnabled(enabling)
         self.actionEvaluateWorksheet.setEnabled(enabling)
-        self.actionWorksheetProperties.setEnabled(enabling)
+        self.actionInterrupt.setEnabled(enabling)
+        self.actionRestartWorksheet.setEnabled(enabling)
+
+        #Edit Menu
         self.actionPaste.setEnabled(enabling)
         self.actionSave.setEnabled(enabling)
         self.actionCut.setEnabled(enabling)
-        self.actionSageServer.setEnabled(enabling)
         self.actionCopy.setEnabled(enabling)
         self.actionInterrupt.setEnabled(enabling)
+
+        #Miscellaneous
+        self.actionSageServer.setEnabled(enabling)
+        self.actionWorksheetProperties.setEnabled(enabling)
+
+        #File Menu
         self.actionPrint.setEnabled(enabling)
         self.actionSaveAs.setEnabled(enabling)
 
@@ -252,9 +271,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             window_menu_actions.append(QAction(action_text, self, triggered=self.raiseWindow))
 
         for window in MainWindow.instances:
-            window.menu_Window.clear()
+            window.menuWindow.clear()
             for new_action in window_menu_actions:
-                window.menu_Window.addAction(new_action)
+                window.menuWindow.addAction(new_action)
 
     def raiseWindow(self):
         action = self.sender()
@@ -397,7 +416,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.saveFile(filename)
 
     def doActionSaveAll(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        for window in MainWindow.instances:
+            window.doActionSave()
 
     def saveFile(self, file_name):
         #Save the file, overwriting any existing file.
@@ -431,10 +451,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.showConsoles()
 
     def doActionEvaluateWorksheet(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        self.webViewController().worksheet_controller.evaluateAll()
 
     def doActionInterrupt(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        self.webViewController().worksheet_controller.interrupt()
+
+    def doActionHideAllOutput(self):
+        self.webViewController().worksheet_controller.hideAllOutput()
+
+    def doActionShowAllOutput(self):
+        self.webViewController().worksheet_controller.showAllOutput()
+
+    def doActionDeleteAllOutput(self):
+        self.webViewController().worksheet_controller.deleteAllOutput()
+
+    def doActionRestartWorksheet(self):
+        self.webViewController().worksheet_controller.restartWorksheet()
+
+    def doActionTypesetOutput(self):
+        pass
+        #self.webViewController().worksheet_controller.typesetOutput(True)
 
     def doActionAbout(self):
         f = open(os.path.join(GURU_ROOT, 'guru', 'guru_about.html'))
@@ -443,6 +479,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         message_text = file_contents % (platform.python_version(), QT_VERSION_STR, PYSIDE_VERSION_STR, platform.system())
         QMessageBox.about(self, "About Guru", message_text)
+
+    def doActionOnlineDocumentation(self):
+        os.system('open %s 1>&2 > /dev/null &'% GURU_ONLINE_DOCUMENTATION)
 
     def doActionSageServer(self):
         QMessageBox.information(self, "Not Implemented", "Not implemented.")

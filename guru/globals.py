@@ -10,6 +10,7 @@ GURU_PORT = 8081
 GURU_NOTEBOOK_DIR = '/Users/rljacobson/Downloads/'+'.sagenb'
 GURU_USERNAME = 'admin'
 GURU_EMAIL = 'rljacobson@gmail.com'
+GURU_ONLINE_DOCUMENTATION = 'http://www.sagemath.org/doc/index.html'
 
 ############### Paths and sagenb Constants ###############
 lib_path = os.path.join(GURU_ROOT, "lib")
