@@ -1,17 +1,19 @@
 import platform
 import os
 
-from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction)
+from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction, QIcon, QPixmap, QApplication)
 from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt, QObject, QSettings)
 #The next two are imported as their PyQt names.
 from PySide import __version__ as PYSIDE_VERSION_STR
 from PySide.QtCore import __version__ as QT_VERSION_STR
+from PySide.QtWebKit import QWebPage
 
 from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
 from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION
+import guru.resources_rc
 
 #For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
 #of the WebView results in a segfault when the parent is destroyed. We get around
@@ -107,7 +109,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #self.setUnifiedTitleAndToolBarOnMac(True)
 
-        self.setCentralWidget(self.webViewController().webView())
+        webview = self.webViewController().webView()
+        self.setCentralWidget(webview)
 
         #Connect all the actions.
         #File actions
@@ -120,9 +123,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.connect(self.actionQuit, SIGNAL("triggered()"), self.doActionQuit)
 
         #Edit actions
-        self.connect(self.actionCopy, SIGNAL("triggered()"), self.doActionCopy)
-        self.connect(self.actionCut, SIGNAL("triggered()"), self.doActionCut)
-        self.connect(self.actionPaste, SIGNAL("triggered()"), self.doActionPaste)
+        #These actions are provided by the WebView instance.
+        self.actionCopy = webview.pageAction(QWebPage.Copy)
+        iconCopy = QIcon()
+        iconCopy.addPixmap(QPixmap(":/images/images/copy-item.png"), QIcon.Normal, QIcon.Off)
+        self.actionCopy.setIcon(iconCopy)
+        self.actionCopy.setObjectName("actionCopy")
+        
+        self.actionCut = webview.pageAction(QWebPage.Cut)
+        iconCut = QIcon()
+        iconCut.addPixmap(QPixmap(":/images/images/Scissors.png"), QIcon.Normal, QIcon.Off)
+        self.actionCut.setIcon(iconCut)
+        self.actionCut.setObjectName("actionCut")
+        
+        self.actionPaste = webview.pageAction(QWebPage.Paste)
+        iconPaste = QIcon()
+        iconPaste.addPixmap(QPixmap(":/images/images/paste2_30.png"), QIcon.Normal, QIcon.Off)
+        self.actionPaste.setIcon(iconPaste)
+        self.actionPaste.setObjectName("actionPaste")
+
+        self.actionUndo = webview.pageAction(QWebPage.Undo)
+        self.actionUndo.setObjectName("actionUndo")
+        self.actionRedo = webview.pageAction(QWebPage.Redo)
+        self.actionRedo.setObjectName("actionRedo")
+
+        self.menuEdit.addAction(self.actionCopy)
+        self.menuEdit.addAction(self.actionCut)
+        self.menuEdit.addAction(self.actionPaste)
+        self.menuEdit.addAction(self.actionUndo)
+        self.menuEdit.addAction(self.actionRedo)
+
+        self.toolBar.insertAction(self.actionEvaluateWorksheet, self.actionCopy)
+        self.toolBar.insertAction(self.actionEvaluateWorksheet, self.actionCut)
+        self.toolBar.insertAction(self.actionEvaluateWorksheet, self.actionPaste)
+        self.toolBar.insertSeparator(self.actionEvaluateWorksheet)
+
+        #This is normally done in retranslateUi, but that method has already been called.
+        self.retranslateEditMenuUi()
 
         #Worksheet actions
         self.connect(self.actionWorksheetProperties, SIGNAL("triggered()"), self.doActionWorksheetProperties)
@@ -141,6 +178,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.isWelcome:
             #Display the welcome screen.
             self.showWelcome()
+
+    def retranslateEditMenuUi(self):
+        #This is normally done in retranslateUi, but that method has already been called.
+        self.actionCopy.setText(QApplication.translate("MainWindow", "&Copy", None, QApplication.UnicodeUTF8))
+        self.actionCopy.setToolTip(QApplication.translate("MainWindow", "Copy", None, QApplication.UnicodeUTF8))
+        self.actionCopy.setShortcut(QApplication.translate("MainWindow", "Ctrl+C", None, QApplication.UnicodeUTF8))
+        self.actionCut.setText(QApplication.translate("MainWindow", "Cu&t", None, QApplication.UnicodeUTF8))
+        self.actionCut.setToolTip(QApplication.translate("MainWindow", "Cut", None, QApplication.UnicodeUTF8))
+        self.actionCut.setShortcut(QApplication.translate("MainWindow", "Ctrl+X", None, QApplication.UnicodeUTF8))
+        self.actionPaste.setText(QApplication.translate("MainWindow", "&Paste", None, QApplication.UnicodeUTF8))
+        self.actionPaste.setToolTip(QApplication.translate("MainWindow", "Paste from clipboard", None, QApplication.UnicodeUTF8))
+        self.actionPaste.setShortcut(QApplication.translate("MainWindow", "Ctrl+V", None, QApplication.UnicodeUTF8))
+        self.actionUndo.setText(QApplication.translate("MainWindow", "&Undo", None, QApplication.UnicodeUTF8))
+        self.actionUndo.setToolTip(QApplication.translate("MainWindow", "Undo last edit", None, QApplication.UnicodeUTF8))
+        self.actionUndo.setShortcut(QApplication.translate("MainWindow", "Ctrl+Z", None, QApplication.UnicodeUTF8))
+        self.actionRedo.setText(QApplication.translate("MainWindow", "&Redo", None, QApplication.UnicodeUTF8))
+        self.actionRedo.setToolTip(QApplication.translate("MainWindow", "Redo last edit", None, QApplication.UnicodeUTF8))
+        self.actionRedo.setShortcut(QApplication.translate("MainWindow", "Shift+Ctrl+Z", None, QApplication.UnicodeUTF8))
+
 
     def restoreSettings(self):
         settings = QSettings()
@@ -222,11 +278,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionRestartWorksheet.setEnabled(enabling)
 
         #Edit Menu
-        self.actionPaste.setEnabled(enabling)
-        self.actionSave.setEnabled(enabling)
-        self.actionCut.setEnabled(enabling)
-        self.actionCopy.setEnabled(enabling)
-        self.actionInterrupt.setEnabled(enabling)
+        #These are taken care of by the webview itself.
+        # self.actionPaste.setEnabled(enabling)
+        # self.actionSave.setEnabled(enabling)
+        # self.actionCut.setEnabled(enabling)
+        # self.actionCopy.setEnabled(enabling)
+        # self.actionUndo.setEnabled(enabling)
+        # self.actionRedo.setEnabled(enabling)
 
         #Miscellaneous
         self.actionSageServer.setEnabled(enabling)
@@ -518,15 +576,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             window = MainWindow.instances[-1]
             if not window.close():
                 break
-
-    def doActionCopy(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
-
-    def doActionCut(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
-
-    def doActionPaste(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
 
     def doActionWorksheetProperties(self):
         self.showConsoles()

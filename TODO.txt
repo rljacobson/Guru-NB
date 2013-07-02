@@ -1,3 +1,10 @@
 Something is very broken.
 
 Get rid of those stub messages.
+
+There are 4 ways MainWindow communicates with the worksheet:
+	1. Calling WorksheetController functions a la self.webviewcontroller.worksheetcontroller.function().
+	2. Passing function references to the WebviewController's initializer, then on up to the WorksheetController.
+	3. Custom slots/signals.
+	4. Intermediate functions in the WebviewController.
+This should be made consistent, as this is a mess.

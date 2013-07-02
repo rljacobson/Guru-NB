@@ -23,7 +23,7 @@
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_File">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>&amp;File</string>
     </property>
@@ -45,13 +45,10 @@
     <addaction name="actionClose"/>
     <addaction name="actionQuit"/>
    </widget>
-   <widget class="QMenu" name="menu_Edit">
+   <widget class="QMenu" name="menuEdit">
     <property name="title">
      <string>&amp;Edit</string>
     </property>
-    <addaction name="actionCopy"/>
-    <addaction name="actionCut"/>
-    <addaction name="actionPaste"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -78,8 +75,8 @@
     <addaction name="actionInterrupt"/>
     <addaction name="actionRestartWorksheet"/>
    </widget>
-   <addaction name="menu_File"/>
-   <addaction name="menu_Edit"/>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
    <addaction name="menuWorksheet"/>
    <addaction name="menuWindow"/>
    <addaction name="menuHelp"/>
@@ -104,10 +101,6 @@
    <addaction name="actionNew"/>
    <addaction name="actionOpen"/>
    <addaction name="actionSave"/>
-   <addaction name="separator"/>
-   <addaction name="actionCopy"/>
-   <addaction name="actionCut"/>
-   <addaction name="actionPaste"/>
    <addaction name="separator"/>
    <addaction name="actionEvaluateWorksheet"/>
    <addaction name="actionInterrupt"/>
@@ -158,51 +151,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
-   </property>
-  </action>
-  <action name="actionCopy">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/images/images/copy-item.png</normaloff>:/images/images/copy-item.png</iconset>
-   </property>
-   <property name="text">
-    <string>&amp;Copy</string>
-   </property>
-   <property name="toolTip">
-    <string>Copy</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+C</string>
-   </property>
-  </action>
-  <action name="actionCut">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/images/images/Scissors.png</normaloff>:/images/images/Scissors.png</iconset>
-   </property>
-   <property name="text">
-    <string>Cu&amp;t</string>
-   </property>
-   <property name="toolTip">
-    <string>Cut</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+X</string>
-   </property>
-  </action>
-  <action name="actionPaste">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/images/images/paste2_30.png</normaloff>:/images/images/paste2_30.png</iconset>
-   </property>
-   <property name="text">
-    <string>&amp;Paste</string>
-   </property>
-   <property name="toolTip">
-    <string>Paste from clipboard</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+V</string>
    </property>
   </action>
   <action name="actionPrint">
@@ -328,16 +276,6 @@
     <string>Delete All Output</string>
    </property>
   </action>
-  <action name="actionEvaluate_All_Cells">
-   <property name="text">
-    <string>Evaluate Worksheet</string>
-   </property>
-  </action>
-  <action name="actionInterrupt_Evaluation">
-   <property name="text">
-    <string>Interrupt Evaluation</string>
-   </property>
-  </action>
   <action name="actionRestartWorksheet">
    <property name="icon">
     <iconset resource="resources.qrc">
@@ -345,11 +283,6 @@
    </property>
    <property name="text">
     <string>Restart Worksheet</string>
-   </property>
-  </action>
-  <action name="actionTest_sws">
-   <property name="text">
-    <string>test.sws</string>
    </property>
   </action>
  </widget>
