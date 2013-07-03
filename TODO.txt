@@ -7,6 +7,11 @@ There are 4 ways MainWindow communicates with the worksheet:
 	4. Intermediate functions in the WebviewController.
 This should be made consistent, as this is a mess.
 
+Remove unneeded dependencies (openssl, etc.).
+
+Make app translation-ready.
+
+Make app runnable on Windows.
 
 Implement the following menu items.
 ##############

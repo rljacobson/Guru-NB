@@ -23,7 +23,8 @@ class WelcomeHandler(QObject):
         super(WelcomeHandler, self).__init__(parent)
         self.NewFunction = None
         self.OpenFunction = None
-        self.RecentFunction = None
+        self.OpenRecentFunction = None
+        self.AddRecentFunction = None
 
     @Slot()
     def New(self):
@@ -39,12 +40,12 @@ class WelcomeHandler(QObject):
         else:
             self.OpenFunction()
 
-    @Slot(int)
-    def Recent(self, recent_number):
-        if self.RecentFunction is None:
+    @Slot(str)
+    def OpenRecent(self, recent_number):
+        if self.OpenRecentFunction is None:
             QMessageBox.information(self, "Not Implemented", "Not implemented.")
         else:
-            self.RecentFunction(recent_number)
+            self.OpenRecentFunction(recent_number)
 
 
 
@@ -243,11 +244,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._welcomeHandler = WelcomeHandler(self)
             self._welcomeHandler.NewFunction = self.doActionNew
             self._welcomeHandler.OpenFunction = self.doActionOpen
-        self.connect(self.webViewController().webView().page().mainFrame(), SIGNAL("javaScriptWindowObjectCleared()"), self.addJavascriptBridge)
+            self._welcomeHandler.OpenRecentFunction = self.loadFile
 
+        #Connect the javascript bridge.
+        self.connect(self.webViewController().webView().page().mainFrame(), SIGNAL("javaScriptWindowObjectCleared()"), self.addJavascriptBridge)
+        #When the welcome page finishes loading, we add the recent files.
+        self.connect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage);
         #Display the welcome page.
         self.webViewController().showHtmlFile("guru_welcome.html")
 
+    def addRecentFilesToWelcomePage(self):
+        #If we are displaying the welcome page, add the recent files to the recent files list.
+        if self.isWelcome:
+            for recent_file in MainWindow.recentFiles:
+                self.webViewController().addToRecentFiles(recent_file)
 
     def addJavascriptBridge(self):
         #This method is called whenever new content is loaded into the webFrame.
@@ -263,6 +273,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.enableEditingActions()
         #Unhide the toolbar
         self.toolBar.show()
+        #Disconnect the recent files update so we don't add them twice the second time around.
+        self.disconnect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage);
 
     #The editing actions are only relevant if we are editing a worksheet.
     #Otherwise (i.e. for the welcome page), they should be disabled.

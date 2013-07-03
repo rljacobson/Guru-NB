@@ -4,8 +4,16 @@
     <title>Guru Test</title>
 
     <script type="text/javascript">
-        function menuSelect(menu_item){
-            //GuruWelcome.menuSelect();
+        function addRecentFile(filename){
+            //Adds filename to the list of recent files.
+            var recent_files_list = document.getElementById("recent_files_list");
+            var item = document.createElement("li");
+            var anchor = document.createElement("a");
+            anchor.textContent = filename;
+            anchor.href = "#"
+            item.onclick = function(){GuruWelcome.OpenRecent(filename)};
+            item.appendChild(anchor);
+            recent_files_list.appendChild(item);
         }
 	</script>
 
@@ -34,20 +42,20 @@
         <p><i class="icon-time"></i> Open Recent File...</p>
         <div class="well well-small">
 
-            <ul class="nav nav-list">
+            <ul class="nav nav-list" id="recent_files_list">
                 <!-- li class="nav-header">Open Recent File...</li -->
-                <li onclick="GuruWelcome.openRecent(0)"><a href="#">
-                    /Users/rl.../Sage Stuff/FileOne.sws
-                </a></li>
-                <li onclick="GuruWelcome.openRecent(1)"><a href="#">
-                    /Users/rl.../Sage Stuff/FileTwo.sws
-                </a></li>
-                <li onclick="GuruWelcome.openRecent(2)"><a href="#">
-                    /Users/rl.../Sage Stuff/FileThree.sws
-                </a></li>
-                <li onclick="GuruWelcome.openRecent(3)"><a href="#">
-                    /Users/rl.../Sage Stuff/FileFour.sws
-                </a></li>
+                <!--<li onclick="GuruWelcome.openRecent(0)"><a href="#">-->
+                    <!--/Users/rl.../Sage Stuff/FileOne.sws-->
+                <!--</a></li>-->
+                <!--<li onclick="GuruWelcome.openRecent(1)"><a href="#">-->
+                    <!--/Users/rl.../Sage Stuff/FileTwo.sws-->
+                <!--</a></li>-->
+                <!--<li onclick="GuruWelcome.openRecent(2)"><a href="#">-->
+                    <!--/Users/rl.../Sage Stuff/FileThree.sws-->
+                <!--</a></li>-->
+                <!--<li onclick="GuruWelcome.openRecent(3)"><a href="#">-->
+                    <!--/Users/rl.../Sage Stuff/FileFour.sws-->
+                <!--</a></li>-->
             </ul>
         </div>
 
