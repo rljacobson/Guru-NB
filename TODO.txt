@@ -1,5 +1,3 @@
-Something is very broken.
-
 Get rid of those stub messages.
 
 There are 4 ways MainWindow communicates with the worksheet:
@@ -8,3 +6,27 @@ There are 4 ways MainWindow communicates with the worksheet:
 	3. Custom slots/signals.
 	4. Intermediate functions in the WebviewController.
 This should be made consistent, as this is a mess.
+
+
+Implement the following menu items.
+##############
+Guru File Menu
+##############
+Worksheet properties
+	Typeset output
+	Input system
+		Sage
+		gap
+		gp
+		html
+		Maxima
+		etc.
+
+Other properties
+	Sage server
+	Multiserver/parallelization mode?
+
+New Cell
+New Text Cell
+
+##############

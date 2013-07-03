@@ -15,7 +15,6 @@ sdist.log
 #PyCharm stuff.
 .idea
 SecondaryMaterial
-lib
 
 # sage files to ignore:
 /build

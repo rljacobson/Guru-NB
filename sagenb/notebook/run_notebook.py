@@ -23,7 +23,7 @@ from twisted.python.runtime import platformType
 
 from sagenb.misc.misc import (DOT_SAGENB, find_next_available_port,
                               print_open_msg)
-from guru.globals import GURU_ROOT
+from guru.globals import GURU_ROOT, GURU_LIB_PATH
 
 import notebook
 
@@ -50,7 +50,7 @@ class NotebookRun(object):
 import os, sys, random
 #flask_dir = os.path.join('%(guru_root)s', 'flask_server')
 #sys.path.append(flask_dir)
-lib_path = os.path.join('%(guru_root)s', 'lib')
+lib_path = '%(guru_lib_path)s'
 sys.path.append(lib_path)
 sys.path.append('%(guru_root)s')
 import flask_server.base as flask_base
@@ -612,7 +612,8 @@ def notebook_run( #self,
             print "Failed to setup notebook.  Please try notebook.setup() again manually."
 
     kw = dict(port=port, automatic_login=automatic_login, secure=secure, private_pem=private_pem, public_pem=public_pem,
-              interface=interface, directory=directory, pidfile=pidfile, cwd=cwd, profile=profile, upload = upload, guru_root=GURU_ROOT)
+              interface=interface, directory=directory, pidfile=pidfile, cwd=cwd, profile=profile, upload = upload,
+              guru_root=GURU_ROOT, guru_lib_path=GURU_LIB_PATH)
     cmd = command[server]().run_command(kw)
     if cmd is None:
         return

@@ -1,14 +1,17 @@
 import sys
 
-#Start the Flask server in a new thread.
 from guru.globals import startServerThread, cleanup
-startServerThread()
 
-#Now start the main UI.
+
+
 from PySide.QtGui import QApplication
 from guru.MainWindow import MainWindow
 
 def main():
+    #Start the Flask server in a new thread.
+    startServerThread()
+
+    #Now start the main UI.
     app = QApplication(sys.argv)
     app.setOrganizationName("Guru")
     app.setOrganizationDomain("rwu.edu")

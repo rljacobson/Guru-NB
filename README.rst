@@ -6,7 +6,17 @@
    http://code.google.com/r/jasongrout-flask-sagenb/ for more
    information. # XXX 2011-12-22
 
+# What is Guru?
 
+Guru is a standalone editor for Sage worksheet files. In other words, Guru
+is a Sage front end. At present, Guru requires Sage to be available locally
+from the command line to function. Future versions will not require a
+local Sage installation at all.
+
+Guru is essentially a fork of the Sage Notebook. The original Sage Notebook
+README follows.
+
+# Original README
 
 This is the standalone Sage Notebook.
 

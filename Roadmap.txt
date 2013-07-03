@@ -1,17 +1,15 @@
 Version 0:
     FEATURES
-    Open and save .sws files.
-    Connect to a local sage instance using pexpect.
-    Display correctly in the browser.
-    No Sage dependencies.
-    No flask dependencies.
-    All dependencies self-contained/included, i.e., assumes nothing about local python install.
+    +Open and save .sws files.
+    +Connect to a local sage instance using pexpect.
+    +Display correctly in the browser.
+    +No Sage dependencies.
+    -(Has this been met?) All dependencies self-contained/included, i.e., assumes nothing about local python install.
 
     LIMITATIONS
     Interacts don't work.
     Only CAS "system" available is Sage. ?? Is this true?
     Some UI menus/toolbars are nonfunctional.
-    Translations are broken.
     Jmol is broken.
 
 

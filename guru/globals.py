@@ -1,4 +1,4 @@
-import os, sys #, tempfile
+import os, sys, tempfile
 from pkg_resources import resource_filename
 
 
@@ -6,16 +6,14 @@ from pkg_resources import resource_filename
 #This magic gets the Guru directory.
 GURU_ROOT = os.path.split(resource_filename(__name__, ''))[0]
 GURU_PORT = 8081
-#This will eventually be set to a temporary directory.
-GURU_NOTEBOOK_DIR = '/Users/rljacobson/Downloads/'+'.sagenb'
+GURU_NOTEBOOK_DIR = os.path.join(tempfile.mkdtemp(), '.sagenb')
 GURU_USERNAME = 'admin'
 GURU_EMAIL = 'rljacobson@gmail.com'
 GURU_ONLINE_DOCUMENTATION = 'http://www.sagemath.org/doc/index.html'
+GURU_LIB_PATH = os.path.join(GURU_ROOT, "site-packages")
+sys.path.append(GURU_LIB_PATH)
 
-############### Paths and sagenb Constants ###############
-lib_path = os.path.join(GURU_ROOT, "lib")
-sys.path.append(lib_path)
-
+############### Fix sagenb Paths ###############
 import sagenb.misc.misc
 sagenb.misc.misc.DOT_SAGENB = GURU_NOTEBOOK_DIR
 

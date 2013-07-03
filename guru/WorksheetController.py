@@ -1024,4 +1024,5 @@ class WorksheetController(QObject):
 
     def notebook_updates(self):
         self.notebook_save_check()
-        self.notebook_idle_check()
+        #Guru does not quit idle worksheet processes.
+        #self.notebook_idle_check()

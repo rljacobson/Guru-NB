@@ -360,7 +360,8 @@ def notebook_idle_check():
 
 def notebook_updates():
     notebook_save_check()
-    notebook_idle_check()
+    #Guru does not quit idle worksheet processes.
+    #notebook_idle_check()
 
 #CLEAN THIS UP!
 def create_app(path_to_notebook=None, *args, **kwds):
