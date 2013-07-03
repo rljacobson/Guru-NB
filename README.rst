@@ -16,6 +16,10 @@ local Sage installation at all.
 Guru is essentially a fork of the Sage Notebook. The original Sage Notebook
 README follows.
 
+# Dependencies
+
+Guru should ship with everything you need.
+
 # Original README
 
 This is the standalone Sage Notebook.
