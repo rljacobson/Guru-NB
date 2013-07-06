@@ -1,3 +1,9 @@
+====================
+Installation of Guru
+====================
+
+To be determined.
+
 =================================
 Installation of the Sage notebook
 =================================

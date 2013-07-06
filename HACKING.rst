@@ -3,7 +3,7 @@ Development of Guru
 ===================
 
 If you want to participate in the development of Guru, send me a note:
-rljacobson@gmail.com. The best place to get started is to look at
+my github username at gmail.com. The best place to get started is to look at
 TODO.txt and find something you think you can do.
 
 The philosophy Guru takes is that changes to the original Sage notebook
