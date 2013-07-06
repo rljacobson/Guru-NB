@@ -141,6 +141,13 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
         font.setWeight(weight)
         item.setFont(font)
 
+    def selectServer(self, server):
+        server_name = server["name"]
+        for j in range(self.ServerListView.count()):
+            item = self.ServerListView.item(j)
+            if item.text() == server_name:
+                self.ServerListView.setCurrentItem(item)
+                break
 
 if __name__ == "__main__":
     import sys

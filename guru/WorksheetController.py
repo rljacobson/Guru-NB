@@ -18,7 +18,8 @@ from sagenb.notebook.notebook import Notebook
 from sagenb.notebook.misc import encode_response
 from sagenb.misc.misc import (unicode_str, walltime)
 
-from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook
+from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook, ServerConfigurations
+import guru.SageProcessFactory as SageProcessFactory
 
 worksheet_commands = {}
 
@@ -52,20 +53,34 @@ class WorksheetController(QObject):
 
         self.init_updates()
 
+        self.server_configuration = None
+
     @staticmethod
-    def withNewWorksheet(webViewController):
+    def withNewWorksheet(webViewController, server=None):
+        # server is a Sage server configuration that will determine the Sage process this
+        # worksheet will use.
+        if not server:
+            server = ServerConfigurations.getDefault()
         wsc = WorksheetController(webViewController)
-        wsc.setWorksheet(guru_notebook.create_new_worksheet('Untitled', wsc.notebook_username))
+        ws = guru_notebook.create_new_worksheet('Untitled', wsc.notebook_username)
+        SageProcessFactory.setWorksheetProcessServer(ws, server)
+        wsc.setWorksheet(ws)
         wsc._worksheet._notebook = guru_notebook
         return wsc
 
     @staticmethod
-    def withWorksheetFile(webViewController, filename):
+    def withWorksheetFile(webViewController, filename, server=None):
+        if not server:
+            server = ServerConfigurations.getDefault()
         wsc = WorksheetController(webViewController)
         ws = wsc.notebook.import_worksheet(filename, wsc.notebook_username)
+        SageProcessFactory.setWorksheetProcessServer(ws, server)
         wsc.setWorksheet(ws)
         wsc._worksheet._notebook = guru_notebook
         return wsc
+
+    def useServerConfiguration(self, server_config):
+        SageProcessFactory.setWorksheetProcessServer(self._worksheet, server_config)
 
     def setWorksheet(self, worksheet):
         #Check that the worksheet we were given has the notebook setup correctly.

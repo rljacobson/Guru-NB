@@ -82,6 +82,9 @@ class ServerConfigurations:
         lst = [server for server in ServerConfigurations.server_list if server["name"]==name]
         if lst:
             return lst[0]
+        else:
+            raise RuntimeError("No Sage server defined. Cannot start Sage process.")
+
         return None
 
     @staticmethod

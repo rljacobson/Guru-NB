@@ -476,8 +476,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             main_window.show()
 
     def loadNewFile(self):
+        self.server_configuration = ServerConfigurations.getDefault()
+
         #Create a new worksheet
-        self.webViewController().newWorksheetFile()
+        self.webViewController().newWorksheetFile(server=self.server_configuration)
         self.dirty(False)
         self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
 
@@ -515,8 +517,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.file_name = file_name
             #We set the window title.
             self.setUniqueWindowTitle()
+            #Get a Sage server to use.
+            self.server_configuration = ServerConfigurations.getDefault()
             #Open the worksheet in the webView.
-            self.webViewController().openWorksheetFile(file_name)
+            self.webViewController().openWorksheetFile(file_name, server=self.server_configuration)
             #Set the dirty flag handler.
             self.dirty(False)
             self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
@@ -624,7 +628,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def doActionSageServer(self):
         server_list_dialog = ServerListDlg(self)
-
+        #Select the server associated to this window.
+        server_list_dialog.selectServer(self.server_configuration)
+        #Show the dialog.
         server_list_dialog.exec_()
 
         #It's possible that the user will delete all of the servers. It's not clear how to cleanly handle this case.
@@ -640,6 +646,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         server_name = server_list_dialog.ServerListView.currentItem().text()
         if not self.isWelcome:
             self.server_configuration = ServerConfigurations.getServerByName(server_name)
+            self.webViewController().worksheet_controller.useServerConfiguration(self.server_configuration)
 
 #For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
 #of the WebView results in a segfault when the parent is destroyed. We get around

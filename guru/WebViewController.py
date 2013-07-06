@@ -13,7 +13,7 @@ QWebSettings.globalSettings().setAttribute(QWebSettings.OfflineStorageDatabaseEn
 QWebSettings.globalSettings().setAttribute(QWebSettings.OfflineWebApplicationCacheEnabled, True)
 
 from guru.WorksheetController import WorksheetController
-from guru.globals import GURU_ROOT
+from guru.globals import GURU_ROOT, ServerConfigurations
 
 class WebViewController(QObject):
 
@@ -37,9 +37,6 @@ class WebViewController(QObject):
         self.worksheet_controller = None
 
     def webView(self):
-        """
-        :return: The QWebView object associated to the controller.
-        """
         if self._webView is None:
             self._webView = QWebView()
             #Hook up our webView to UI, log, etc.
@@ -54,18 +51,22 @@ class WebViewController(QObject):
         #What is the difference between load() and setUrl()?
         self.webView().page().mainFrame().load(url)
 
-    def openWorksheetFile(self, file_name):
+    def openWorksheetFile(self, file_name, server=None):
+        if not server:
+            server = ServerConfigurations.getDefault()
         self.clear()
-        self.worksheet_controller = WorksheetController.withWorksheetFile(self, file_name)
+        self.worksheet_controller = WorksheetController.withWorksheetFile(self, file_name, server=server)
 
     def saveWorksheetFile(self, file_name):
         #Save the file, overwriting any existing file.
         self.worksheet_controller.saveWorksheet(file_name)
 
-    def newWorksheetFile(self):
+    def newWorksheetFile(self, server=None):
+        if not server:
+            server = ServerConfigurations.getDefault()
         #Create a new worksheet.
         self.clear()
-        self.worksheet_controller = WorksheetController.withNewWorksheet(self)
+        self.worksheet_controller = WorksheetController.withNewWorksheet(self, server=server)
 
     def webPageError(self, reply):
         print "Web page error: %s" % reply.error()
