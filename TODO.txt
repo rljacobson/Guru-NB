@@ -1,4 +1,13 @@
+EASY
+
 Get rid of those stub messages.
+
+Implement the following menu items:
+	New Cell
+	New Text Cell
+	Typeset output
+
+MEDIUM
 
 There are 4 ways MainWindow communicates with the worksheet:
 	1. Calling WorksheetController functions a la self.webviewcontroller.worksheetcontroller.function().
@@ -7,18 +16,19 @@ There are 4 ways MainWindow communicates with the worksheet:
 	4. Intermediate functions in the WebviewController.
 This should be made consistent, as this is a mess.
 
-Remove unneeded dependencies (openssl, etc.).
-
 Make app translation-ready.
 
 Make app runnable on Windows.
 
-Implement the following menu items.
-##############
-Guru File Menu
-##############
-Worksheet properties
-	Typeset output
+HARD
+
+Remove dependence on sagenb.notebook.notebook.
+
+Remove unneeded dependencies (openssl, etc.).
+
+UNKNOWN
+
+Implement the following worksheet properties:
 	Input system
 		Sage
 		gap
@@ -26,12 +36,3 @@ Worksheet properties
 		html
 		Maxima
 		etc.
-
-Other properties
-	Sage server
-	Multiserver/parallelization mode?
-
-New Cell
-New Text Cell
-
-##############
