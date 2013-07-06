@@ -1,3 +1,6 @@
+
+
+
 EASY
 
 Get rid of those stub messages.
@@ -6,6 +9,22 @@ Implement the following menu items:
 	New Cell
 	New Text Cell
 	Typeset output
+
+There is no consistent name for a server configuration. Is it:
+	server_config
+	sage_configuration
+	sage_server
+	server
+	...??
+Pick one and make the code consistent.
+
+Filename: One word or two? Choose either filename or file_name and make the code consistent.
+
+Other sources of variable name inconsistency:
+	Nonpublic properties should be preceded by _.
+	Properties with getters/setters should use the @property @name.setter idioms.
+	Standard Python naming conventions should be employed. See http://www.python.org/dev/peps/pep-0008/#naming-conventions.
+
 
 MEDIUM
 
