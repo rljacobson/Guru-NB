@@ -47,6 +47,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.file_name = file_name
+        self.server_configuration = None
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
@@ -71,13 +72,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.isWelcome:
             self.restoreSettings()
 
-        #restoreSettings() initializes ServerConfigurations. If no servers are configured, open
-        #the ServerListDlg so the user can configure a server.
-        if not ServerConfigurations.server_list:
-            self.doActionSageServer()
-
+        #restoreSettings() initializes ServerConfigurations.
         #This should always set self.server_configuration to a legit configuration--unless there are none.
         self.server_configuration = ServerConfigurations.getDefault()
+
+        #If no servers are configured, open the ServerListDlg so the user can configure a server.
+        if not ServerConfigurations.server_list:
+            self.doActionSageServer()
 
         if isNewFile:
             self.loadNewFile()
@@ -628,8 +629,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def doActionSageServer(self):
         server_list_dialog = ServerListDlg(self)
-        #Select the server associated to this window.
-        server_list_dialog.selectServer(self.server_configuration)
+        if self.server_configuration:
+            #Select the server associated to this window.
+            server_list_dialog.selectServer(self.server_configuration)
+
         #Show the dialog.
         server_list_dialog.exec_()
 
