@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'guru/Ui_MainWindow.ui'
 #
-# Created: Mon Jul  1 21:14:12 2013
+# Created: Fri Jul  5 19:28:59 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -130,6 +130,8 @@ class Ui_MainWindow(object):
         self.menuWorksheet.addAction(self.actionEvaluateWorksheet)
         self.menuWorksheet.addAction(self.actionInterrupt)
         self.menuWorksheet.addAction(self.actionRestartWorksheet)
+        self.menuWorksheet.addSeparator()
+        self.menuWorksheet.addAction(self.actionSageServer)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.menubar.addAction(self.menuWorksheet.menuAction())

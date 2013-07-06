@@ -12,44 +12,19 @@ from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
-from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION
+from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION, ServerConfigurations
+from guru.ServerListDlg import ServerListDlg
 import guru.resources_rc
 
-#For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
-#of the WebView results in a segfault when the parent is destroyed. We get around
-#this with a dummy class.
-class WelcomeHandler(QObject):
-    def __init__(self, parent=None):
-        super(WelcomeHandler, self).__init__(parent)
-        self.NewFunction = None
-        self.OpenFunction = None
-        self.OpenRecentFunction = None
-        self.AddRecentFunction = None
 
-    @Slot()
-    def New(self):
-        if self.NewFunction is None:
-            QMessageBox.information(self, "Not Implemented", "Not implemented.")
-        else:
-            self.NewFunction()
-
-    @Slot()
-    def Open(self):
-        if self.OpenFunction is None:
-            QMessageBox.information(self, "Not Implemented", "Not implemented.")
-        else:
-            self.OpenFunction()
-
-    @Slot(str)
-    def OpenRecent(self, recent_number):
-        if self.OpenRecentFunction is None:
-            QMessageBox.information(self, "Not Implemented", "Not implemented.")
-        else:
-            self.OpenRecentFunction(recent_number)
-
-
+# MainWindow.restoreSettings() is called if this is the first window on app startup.
+# MainWindow.saveSettings() is called when the last MainWindow of the app closes,
+# which means application termination is imminent.
 
 class MainWindow(QMainWindow, Ui_MainWindow):
+
+    SERVER_NOT_CONFIGURED_MESSAGE = "Guru needs a Sage server configured in order to evaluate cells. " \
+                                    "Add a Sage server configuration in the server configuration dialog?"
 
     #Keep track of the MainWindow objects.
     instances = list()
@@ -95,6 +70,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.isWelcome:
             self.restoreSettings()
+
+        #restoreSettings() initializes ServerConfigurations. If no servers are configured, open
+        #the ServerListDlg so the user can configure a server.
+        if not ServerConfigurations.server_list:
+            self.doActionSageServer()
+
+        #This should always set self.server_configuration to a legit configuration--unless there are none.
+        self.server_configuration = ServerConfigurations.getDefault()
 
         if isNewFile:
             self.loadNewFile()
@@ -201,18 +184,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def restoreSettings(self):
         settings = QSettings()
+
+        #Restore recent files list.
         MainWindow.recentFiles = settings.value("RecentFiles")
         if MainWindow.recentFiles is None:
             MainWindow.recentFiles = []
+        self.updateRecentFilesMenu()
+
+        #Restore window geometry
         self.restoreGeometry(settings.value("MainWindow/Geometry"))
         self.restoreState(settings.value("MainWindow/State"))
-        self.updateRecentFilesMenu()
+
+        #Populate the list of available Sage servers.
+        sage_servers = settings.value("ServerConfigurations")
+        if sage_servers is None:
+            sage_servers = []
+        ServerConfigurations.restoreFromList(sage_servers)
+
 
     def saveSettings(self):
         settings = QSettings()
         settings.setValue("RecentFiles", MainWindow.recentFiles)
         settings.setValue("MainWindow/Geometry", self.saveGeometry())
         settings.setValue("MainWindow/State", self.saveState())
+        settings.setValue("ServerConfigurations", ServerConfigurations.server_list)
 
     def webViewController(self):
         #Why am I using lazy instantiation here? We'll leave it like this for now.
@@ -274,7 +269,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Unhide the toolbar
         self.toolBar.show()
         #Disconnect the recent files update so we don't add them twice the second time around.
-        self.disconnect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage);
+        self.disconnect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage)
+        #Set the Sage server to the default. (It might be set from a previous call to doActionSageServer().)
+        self.server_configuration = ServerConfigurations.getDefault()
 
     #The editing actions are only relevant if we are editing a worksheet.
     #Otherwise (i.e. for the welcome page), they should be disabled.
@@ -299,7 +296,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.actionRedo.setEnabled(enabling)
 
         #Miscellaneous
-        self.actionSageServer.setEnabled(enabling)
+        #self.actionSageServer.setEnabled(enabling)
         self.actionWorksheetProperties.setEnabled(enabling)
 
         #File Menu
@@ -626,6 +623,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         os.system('open %s 1>&2 > /dev/null &'% GURU_ONLINE_DOCUMENTATION)
 
     def doActionSageServer(self):
-        QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        server_list_dialog = ServerListDlg(self)
 
+        server_list_dialog.exec_()
+
+        #It's possible that the user will delete all of the servers. It's not clear how to cleanly handle this case.
+        #We choose to give the user a choice to fix the situation.
+        while not ServerConfigurations.server_list:
+            #No servers?
+            response = QMessageBox.question(self, "Sage Not Configured", MainWindow.SERVER_NOT_CONFIGURED_MESSAGE, QMessageBox.Yes, QMessageBox.No)
+            if response == QMessageBox.No:
+                return
+            server_list_dialog.exec_()
+
+        #Execution only reaches this point if there exists a server.
+        server_name = server_list_dialog.ServerListView.currentItem().text()
+        if not self.isWelcome:
+            self.server_configuration = ServerConfigurations.getServerByName(server_name)
+
+#For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
+#of the WebView results in a segfault when the parent is destroyed. We get around
+#this with a dummy class.
+class WelcomeHandler(QObject):
+    def __init__(self, parent=None):
+        super(WelcomeHandler, self).__init__(parent)
+        self.NewFunction = None
+        self.OpenFunction = None
+        self.OpenRecentFunction = None
+        self.AddRecentFunction = None
+
+    @Slot()
+    def New(self):
+        if self.NewFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.NewFunction()
+
+    @Slot()
+    def Open(self):
+        if self.OpenFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.OpenFunction()
+
+    @Slot(str)
+    def OpenRecent(self, recent_number):
+        if self.OpenRecentFunction is None:
+            QMessageBox.information(self, "Not Implemented", "Not implemented.")
+        else:
+            self.OpenRecentFunction(recent_number)
 

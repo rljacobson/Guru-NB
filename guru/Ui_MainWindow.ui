@@ -74,6 +74,8 @@
     <addaction name="actionEvaluateWorksheet"/>
     <addaction name="actionInterrupt"/>
     <addaction name="actionRestartWorksheet"/>
+    <addaction name="separator"/>
+    <addaction name="actionSageServer"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>

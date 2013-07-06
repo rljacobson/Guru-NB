@@ -73,7 +73,7 @@ class WebViewController(QObject):
     def addToRecentFiles(self, file_name):
         #This method only makes sense if we are displaying the welcome page.
         webframe = self.webView().page().mainFrame()
-        javascript = "addRecentFile('%s')"%file_name
+        javascript = 'addRecentFile("%s")'%file_name
         webframe.evaluateJavaScript(javascript)
 
     def updateStatusBar(self, text):
