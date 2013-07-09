@@ -5,7 +5,7 @@ from PySide.QtCore import (SIGNAL)
 from guru.Ui_ServerListDlg import Ui_ServerListDlg
 # from EditSageServerDlg import EditSageServerDlg
 from guru.EditSageServerDlg import EditSageServerDlg
-from guru.globals import ServerConfigurations
+from guru.ServerConfigurations import ServerConfigurations
 
 class ServerListDlg(QDialog, Ui_ServerListDlg):
     def __init__(self, parent=None):
@@ -33,15 +33,11 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
                 return
 
             #Fetch the data.
-            new_server = dict()
-            new_server["type"] = "local"
-            new_server["name"] = dialog.txtName.text()
-            new_server["path"] = dialog.txtPath.text()
-            new_server["default"] = dialog.DefaultCheckBox.isChecked()
+            new_server = dialog.getServerConfiguration()
 
             #Check to see if the name is in use.
             name_collision = ServerConfigurations.getServerByName(new_server["name"])
-            #If the user changed the name to a new name that is already in use, name_collision will
+            #If the user set the name to a new name that is already in use, name_collision will
             #not be None. The loop will continue and the dialog reopened.
             if name_collision:
                 #The name is already in use.
@@ -63,9 +59,10 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
             return
         name = self.ServerListView.currentItem().text()
 
-        #Find the corresponding
+        #Find the corresponding server
         server_config = ServerConfigurations.getServerByName(name)
 
+        #Create the dialog. It's only shown when we call dialog.exec_().
         dialog = EditSageServerDlg(server_info=server_config)
 
         name_collision = True #The while loop needs to run at least once.
@@ -74,11 +71,13 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
                 #User clicked cancel.
                 return
 
+            new_server = dialog.getServerConfiguration()
+
             name_collision = False #We check it with the 'if' below.
-            new_name = dialog.txtName.text()
+
             #If the user changed the name to a new name that is already in use, the loop will continue
             #and the dialog reopened.
-            if new_name != server_config["name"] and ServerConfigurations.getServerByName(new_name):
+            if new_server["name"] != server_config["name"] and ServerConfigurations.getServerByName(new_server["name"]):
                 #The name is already in use.
                 name_collision = True
                 QMessageBox.critical(self, "Name already exists", "A server configuration already exists with that name. Choose a different name.")
@@ -86,10 +85,12 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
                 dialog.txtName.setFocus()
 
         #Update server_config
-        server_config["type"] = dialog.server_type
-        server_config["name"] = new_name
-        server_config["path"] = dialog.txtPath.text()
-        self.ServerListView.currentItem().setText(new_name)
+        if server_config != new_server:
+            # Replace server_config with new_server.
+            index = ServerConfigurations.server_list.index(server_config)
+            ServerConfigurations.server_list[index] = new_server
+
+        self.ServerListView.currentItem().setText(new_server["name"])
 
         #When we set the "default" value, we need to also take care of the font of the item in the ListView.
         ServerConfigurations.setDefault(server_config, set=dialog.DefaultCheckBox.isChecked())

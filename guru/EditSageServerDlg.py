@@ -3,7 +3,6 @@ import os, subprocess
 from PySide.QtGui import (QApplication, QDialog, QMessageBox, QFileDialog)
 from PySide.QtCore import (SIGNAL)
 
-# from Ui_EditSageServerDlg import Ui_EditSageServerDlg
 from guru.Ui_EditSageServerDlg import Ui_EditSageServerDlg
 
 class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
@@ -15,14 +14,9 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
         #If the user changes the path, validate the path. Unfortunately, this doesn't
         #fire in every scenario we'd like, so calls to self.validateServerPath() are
         #peppered throughout the code below.
-        self.connect(self.txtPath, SIGNAL("editingFinished()"), self.validateServerPath)
-        self.connect(self.btnOpenPath, SIGNAL("clicked()"), self.openPath)
-
-
-        self.validServer=False
-
-        #In the future, there will be more types of server configurations than just "local."
-        self.server_type = "local"
+        self.connect(self.txtPath, SIGNAL("editingFinished()"), self.validateLocalServerPath)
+        self.connect(self.btnOpenPath, SIGNAL("clicked()"), self.openLocalServerPath)
+        self.connect(self.TestLoginBtn, SIGNAL("clicked()"), self.validateNotebookServer)
 
         #server_info is a dictionary with which we populate the controls.
         if server_info is not None:
@@ -36,9 +30,15 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
                 #If it's a local server (i.e. command line), configure the
                 #dialog accordingly.
                 self.txtPath.setText(server_info["path"])
-                self.validateServerPath()
+                self.validateLocalServerPath()
+                self.ServerTypeTabs.setCurrentWidget(self.LocalServerTab)
+            elif server_info["type"]=="notebook server":
+                self.txtNotebookServerURL.setText(server_info["url"])
+                self.txtNotebookServerUsername.setText(server_info["username"])
+                self.txtNotebookServerPassword.setText(server_info["password"])
+                self.ServerTypeTabs.setCurrentWidget(self.LocalServerTab)
 
-    def validateServerPath(self):
+    def validateLocalServerPath(self):
         #The text of self.txtPath should contain the path to a Sage installation.
         #We attempt to run "sage -version" to test that the installation is valid.
 
@@ -46,8 +46,7 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
 
         if not path:
             self.lblDetectedVersion.setText('')
-            self.validServer = False
-            return
+            return False
 
         #We let users point to the .app bundle on Mac OS X.
         if path.endswith('.app'):
@@ -69,16 +68,68 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
             errout = out + p.stderr.read()
             error_message += errout[:256]
             self.lblDetectedVersion.setText(error_message)
-            self.validServer = False
+            return False
         else:
             self.lblDetectedVersion.setText(out)
-            self.validServer = True
+            return True
 
-    def openPath(self):
+    def openLocalServerPath(self):
         file_name = QFileDialog.getOpenFileName(self, "Select Sage Installation")[0]
         self.txtPath.setText(file_name)
-        self.validateServerPath()
+        self.validateLocalServerPath()
 
+    def validateNotebookServer(self):
+        #We try to log in to the Notebook server with the provided credentials.
+
+        import requests
+        session = requests.Session()
+
+        #First, we massage the url into the right form.
+        url = self.txtNotebookServerURL.text().strip('/') #Get rid of any trailing /'s.
+        if not url.lower().startswith("http://"):
+            url = "http://" + url
+        if not url.endswith("/login"):
+            url += "/login"
+
+        data = {"email": self.txtNotebookServerUsername.text(), "password": self.txtNotebookServerPassword.text()}
+
+        succeeded = True
+
+        try:
+            response = session.post(url, data)
+            #If the server doesn't return '200 OK', raise an exception.
+            response.raise_for_status()
+
+            #If the login was unsuccessful, the response.url will still be /login. Otherwise,
+            #it will be the user's username.
+
+            # print "POST url: %s" % url
+            # print "RESPONSE url: %s"%response.url
+            # print "RESPONSE status_code: %s"%response.status_code
+            # print "RESPONSE history: %s"%response.history
+
+            url = response.url.strip('/') #Get rid of any trailing /'s.
+            username = url.split('/')[-1] #Pick out the username.
+            if username == "login":
+                #Login must have failed.
+                self.TestLoginLbl.setText("<font color='red'>Login Failed. Check username and password.</font>")
+                self.txtNotebookServerUsername.selectAll()
+                self.txtNotebookServerUsername.setFocus()
+                succeeded = False
+            else:
+                self.TestLoginLbl.setText("<font color='green'>Logged in as %s.</font>"%username)
+                succeeded = True
+        except Exception as e:
+            #Generally, an exception is raised if the server is unreachable or if the url is malformed.
+            failed_message = "<font color='red'>Failed to connect to server.</font><br>%s" % e.message
+            self.TestLoginLbl.setText(failed_message)
+            self.txtNotebookServerURL.selectAll()
+            self.txtNotebookServerURL.setFocus()
+            succeeded = False
+        finally:
+            session.close()
+
+        return succeeded
 
     def accept(self, *args, **kwargs):
         #Validate the input, returning if invalid.
@@ -91,15 +142,37 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
             self.txtName.setFocus()
             return
 
-        self.validateServerPath()
-        if not self.validServer:
-            QMessageBox.critical(self, "Invalid Path", "The path you entered does not point to a valid Sage installation.")
-            self.txtPath.selectAll()
-            self.txtPath.setFocus()
-            return
+        #We check to see if the user entered a valid server configuration.
+        if self.ServerTypeTabs.currentWidget() is self.LocalServerTab:
+            if not self.validateLocalServerPath():
+                QMessageBox.critical(self, "Invalid Path", "The path you entered does not point to a valid Sage installation.")
+                self.txtPath.selectAll()
+                self.txtPath.setFocus()
+                return
+        elif self.ServerTypeTabs.currentWidget() is self.NotbookServerTab:
+            if not self.validateNotebookServer():
+                QMessageBox.critical(self, "Invalid Notebook Server", "The Sage Notebook Server settings you provided are not valid.")
+                return
+
 
         #Input is valid, so accept.
         QDialog.accept(self)
+
+    def getServerConfiguration(self):
+        server_config = dict()
+        server_config["name"] = self.txtName.text()
+        server_config["default"] = self.DefaultCheckBox.isChecked()
+
+        # This method does all of the work of packaging the settings into a dictionary.
+        if self.ServerTypeTabs.currentWidget() is self.LocalServerTab:
+            server_config["type"] = "local"
+            server_config["path"] = self.txtPath.text()
+        elif self.ServerTypeTabs.currentWidget() is self.NotbookServerTab:
+            server_config["type"] = "notebook server"
+            server_config["username"] = self.txtNotebookServerUsername.text()
+            server_config["password"] = self.txtNotebookServerPassword.text()
+
+        return server_config
 
 if __name__ == "__main__":
     import sys

@@ -4,7 +4,7 @@
 #   Open and save .sws files.
 #   Delete the internal notebook object on disk when done.
 
-import os
+import os, re
 
 try:
     # simplejson is faster, so try to import it first
@@ -18,7 +18,8 @@ from sagenb.notebook.notebook import Notebook
 from sagenb.notebook.misc import encode_response
 from sagenb.misc.misc import (unicode_str, walltime)
 
-from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook, ServerConfigurations
+from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook
+from guru.ServerConfigurations import ServerConfigurations
 import guru.SageProcessFactory as SageProcessFactory
 
 worksheet_commands = {}
@@ -33,6 +34,8 @@ class WorksheetController(QObject):
 
         WorksheetController.worksheet_count += 1
 
+        self.thingy = 0
+
         self.webview_controller = webViewController
 
         #Set up the Python-javascript bridge.
@@ -43,8 +46,7 @@ class WorksheetController(QObject):
         self.isDirty = False
         self.cleanState = 0
 
-        #Set up the local notebook and worksheet.
-        #I need a better tmp directory.
+        #Sanity check.
         if guru_notebook is None:
             raise RuntimeError
 
@@ -100,40 +102,47 @@ class WorksheetController(QObject):
         #Each time this happens, we need to reconnect the Python-javascript bridge.
         self.webFrame.addToJavaScriptWindowObject("Guru", self)
 
-    @Slot(str, str)
-    def asyncRequest(self, url, postvars):
+    @Slot(str)
+    def asyncRequest(self, token):
         #This is the counterpart to sagenb.async_request() in sagenb.js.
         #The original sagenb.async_request() made an ajax request. We can
-        #significantly improve performance by calling this python method
+        #significantly improve UI performance by calling this python method
         #directly and bypassing the Flask server.
 
+        # Sometimes the worksheet is deleted before the webview is GCed.
         if self._worksheet is None:
             return
 
-        if False:
+        if True:
             #Handle the command ourselves.
+            javascript = "Guru.requests['%s']['url'];" % token
+            url = self.webFrame.evaluateJavaScript(javascript)
 
-            #Log the request to the Ajax console.
-            console_text = "url: %s\n" % url
-            if postvars != "":
-                #Log
-                self.request_values = json.loads(postvars)
-                console_text += ("decoded postvars: %s\n"%self.request_values)
-
-            self.webview_controller.putAjaxConsole(console_text)
+            javascript = "encode_response(Guru.requests['%s']['postvars']);" % token
+            postvars = self.webFrame.evaluateJavaScript(javascript)
+            if postvars:
+                self.request_values = json.loads(postvars);
 
             #The url encodes the command. They look like:
             #   url = "/home/admin/0/worksheet_properties"
+            #print "URL: %s" % url
             command = url.split("/")[-1]
+
+            print "COMMAND: %s" % command
+
             result = worksheet_commands[command](self, self._worksheet)
+            
+            #Because we encode result in a javascript string literal, we need
+            #to format the string as follows.
+            result = repr(result)[1:-1]
+
             self.webview_controller.putAjaxConsole("result: " + result + "\n")
-            javascript = "Guru.callback('success', '%s');" %  result
+            javascript = "Guru.requests['%s']['callback']('success', '%s');" % (token, result)
             self.webFrame.evaluateJavaScript(javascript)
 
         else:
             #Let the Sage Notebook Server handle the request as usual.
-
-            javascript = "sagenb.guru_async_request(Guru.url, Guru.callback, Guru.postvars);"
+            javascript = "sagenb.guru_async_request_fall_through('%s');" % token
             self.webFrame.evaluateJavaScript(javascript)
 
         #Check and see if the operation has made the worksheet dirty. If so, emit a "dirty" signal.

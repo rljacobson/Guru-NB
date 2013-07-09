@@ -12,7 +12,8 @@ from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
-from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION, ServerConfigurations
+from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION
+from guru.ServerConfigurations import ServerConfigurations
 from guru.ServerListDlg import ServerListDlg
 import guru.resources_rc
 
@@ -22,9 +23,6 @@ import guru.resources_rc
 # which means application termination is imminent.
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-
-    SERVER_NOT_CONFIGURED_MESSAGE = "Guru needs a Sage server configured in order to evaluate cells. " \
-                                    "Add a Sage server configuration in the server configuration dialog?"
 
     #Keep track of the MainWindow objects.
     instances = list()
@@ -47,7 +45,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.file_name = file_name
-        self.server_configuration = None
 
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
@@ -72,10 +69,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.isWelcome:
             self.restoreSettings()
 
-        #restoreSettings() initializes ServerConfigurations.
-        #This should always set self.server_configuration to a legit configuration--unless there are none.
-        self.server_configuration = ServerConfigurations.getDefault()
-
+        #restoreSettings() has initialized ServerConfigurations (among other things).
         #If no servers are configured, open the ServerListDlg so the user can configure a server.
         if not ServerConfigurations.server_list:
             self.doActionSageServer()
@@ -271,8 +265,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.toolBar.show()
         #Disconnect the recent files update so we don't add them twice the second time around.
         self.disconnect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage)
-        #Set the Sage server to the default. (It might be set from a previous call to doActionSageServer().)
-        self.server_configuration = ServerConfigurations.getDefault()
 
     #The editing actions are only relevant if we are editing a worksheet.
     #Otherwise (i.e. for the welcome page), they should be disabled.
@@ -477,10 +469,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             main_window.show()
 
     def loadNewFile(self):
-        self.server_configuration = ServerConfigurations.getDefault()
-
         #Create a new worksheet
-        self.webViewController().newWorksheetFile(server=self.server_configuration)
+        self.webViewController().newWorksheetFile()
         self.dirty(False)
         self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
 
@@ -518,10 +508,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.file_name = file_name
             #We set the window title.
             self.setUniqueWindowTitle()
-            #Get a Sage server to use.
-            self.server_configuration = ServerConfigurations.getDefault()
             #Open the worksheet in the webView.
-            self.webViewController().openWorksheetFile(file_name, server=self.server_configuration)
+            self.webViewController().openWorksheetFile(file_name)
             #Set the dirty flag handler.
             self.dirty(False)
             self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
@@ -629,9 +617,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def doActionSageServer(self):
         server_list_dialog = ServerListDlg(self)
-        if self.server_configuration:
-            #Select the server associated to this window.
-            server_list_dialog.selectServer(self.server_configuration)
+
+        #Get a reference to the WorksheetController associated to this window.
+        wsc = self.webViewController().worksheet_controller
+
+        #Select the server associated to this window, if there is one.
+        if wsc and wsc.server_configuration:
+            server_list_dialog.selectServer(wsc.server_configuration)
 
         #Show the dialog.
         server_list_dialog.exec_()
@@ -640,16 +632,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #We choose to give the user a choice to fix the situation.
         while not ServerConfigurations.server_list:
             #No servers?
-            response = QMessageBox.question(self, "Sage Not Configured", MainWindow.SERVER_NOT_CONFIGURED_MESSAGE, QMessageBox.Yes, QMessageBox.No)
+            message_text = "Guru needs a Sage server configured in order to evaluate cells. " \
+                            "Add a Sage server configuration in the server configuration dialog?"
+            response = QMessageBox.question(self, "Sage Not Configured", message_text, QMessageBox.Yes, QMessageBox.No)
             if response == QMessageBox.No:
                 return
             server_list_dialog.exec_()
 
         #Execution only reaches this point if there exists a server.
         server_name = server_list_dialog.ServerListView.currentItem().text()
-        if not self.isWelcome:
-            self.server_configuration = ServerConfigurations.getServerByName(server_name)
-            self.webViewController().worksheet_controller.useServerConfiguration(self.server_configuration)
+        if wsc:
+            new_config = ServerConfigurations.getServerByName(server_name)
+            wsc.useServerConfiguration(new_config)
 
 #For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
 #of the WebView results in a segfault when the parent is destroyed. We get around

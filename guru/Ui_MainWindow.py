@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'guru/Ui_MainWindow.ui'
 #
-# Created: Fri Jul  5 19:28:59 2013
+# Created: Mon Jul  8 17:12:20 2013
 #      by: pyside-uic 0.2.13 running on PySide 1.1.1
 #
 # WARNING! All changes made in this file will be lost!

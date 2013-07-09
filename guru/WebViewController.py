@@ -13,7 +13,8 @@ QWebSettings.globalSettings().setAttribute(QWebSettings.OfflineStorageDatabaseEn
 QWebSettings.globalSettings().setAttribute(QWebSettings.OfflineWebApplicationCacheEnabled, True)
 
 from guru.WorksheetController import WorksheetController
-from guru.globals import GURU_ROOT, ServerConfigurations
+from guru.globals import GURU_ROOT
+from guru.ServerConfigurations import ServerConfigurations
 
 class WebViewController(QObject):
 

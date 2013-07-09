@@ -1,6 +1,6 @@
 from sagenb.notebook.worksheet import Worksheet
 
-from guru.globals import ServerConfigurations
+from guru.ServerConfigurations import ServerConfigurations
 
 def setWorksheetProcessServer(worksheet, server_config=None):
     # sagenb.notebook.worksheet.Worksheet was designed to get it's sage process

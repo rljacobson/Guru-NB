@@ -81,19 +81,39 @@ sagenb.hide_connection_error = function() {
 };
 
 sagenb.async_request = function(url, callback, postvars) {
+    //We pass ajax requests through Guru so that we can mess with them in various ways.
 
-    Guru.callback = callback;
-    Guru.postvars = postvars
-    Guru.encodedPostvars = encode_response(postvars);
-    Guru.url = url;
+    //token acts as a GUID.
+    var token = Math.random().toString();
+
+    if( typeof Guru.requests == 'undefined' ){
+        Guru.requests = {};
+    }
+
+    //Record the data for future reference.
+    Guru.requests[token] = {"url": url, "callback": callback, "postvars": postvars};
+
     //We make the request synchronously. Asynchronous requests fail on
     //"worksheet_properties" for reasons unknown.
-    Guru.asyncRequest(Guru.url,Guru.encodedPostvars);
+    Guru.asyncRequest(token);
     //We make the request asynchronously.
-    //setTimeout("Guru.asyncRequest(Guru.url,Guru.encodedPostvars)", 0);
-}
+    //setTimeout("Guru.asyncRequest(token)", 0);
+};
+
+sagenb.guru_async_request_fall_through = function(token){
+    //This just unpacks and deletes Guru.requests[token],
+    //and calls the usual guru_async_request with the
+    //original data.
+    request_dict  = Guru.requests[token];
+    url = request_dict["url"];
+    callback = request_dict["callback"];
+    postvars = request_dict["postvars"];
+    sagenb.guru_async_request(url, callback, postvars);
+    delete Guru.requests[token];
+};
 
 sagenb.guru_async_request = function(url, callback, postvars) {
+    //Essentially identical to the original sagenb.async_request function.
     var settings = {
         url: url,
         async: true,
@@ -106,8 +126,6 @@ sagenb.guru_async_request = function(url, callback, postvars) {
             callback("failure", errorThrown);
         };
         settings.success = function (data, textStatus) {
-            Guru.putAjaxConsole("RESPONSE:");
-            Guru.putAjaxConsole(data)
             callback("success", data);
         };
     }
@@ -119,10 +137,9 @@ sagenb.guru_async_request = function(url, callback, postvars) {
         settings.type = "GET";
     }
 
-    Guru.putAjaxConsole("COMMAND: " + url);
-    Guru.putAjaxConsole("POSTVARS: " + encode_response(postvars));
     $.ajax(settings);
-}
+};
+
 sagenb.generic_callback = function(extra_callback) {
 	/* Constructs a generic callback function. The extra_callback
 	* argument is optional. If the callback receives a "success"
@@ -164,4 +181,4 @@ sagenb.help = function() {
     Popup the help window.
     */
     window.open("/help", "", "menubar=1,location=1,scrollbars=1,width=800,height=650,toolbar=1,  resizable=1");
-}
+};
