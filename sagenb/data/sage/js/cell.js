@@ -631,7 +631,10 @@ sagenb.worksheetapp.cell = function(id) {
 		var nextcell = get_next_eval_cell();
 		if(nextcell) {
 			nextcell.focus();
-		}
+		} else {
+            //There is no next cell, so make one.
+            sagenb.worksheetapp.worksheet.new_cell_after(_this.id)
+        }
 
 		// we're an evaluate cell
 		sagenb.async_request(_this.worksheet.worksheet_command("eval"), _evaluate_callback, {
