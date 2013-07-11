@@ -36,7 +36,7 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
                 self.txtNotebookServerURL.setText(server_info["url"])
                 self.txtNotebookServerUsername.setText(server_info["username"])
                 self.txtNotebookServerPassword.setText(server_info["password"])
-                self.ServerTypeTabs.setCurrentWidget(self.LocalServerTab)
+                self.ServerTypeTabs.setCurrentWidget(self.NotbookServerTab)
 
     def validateLocalServerPath(self):
         #The text of self.txtPath should contain the path to a Sage installation.
@@ -169,6 +169,15 @@ class EditSageServerDlg(QDialog, Ui_EditSageServerDlg):
             server_config["path"] = self.txtPath.text()
         elif self.ServerTypeTabs.currentWidget() is self.NotbookServerTab:
             server_config["type"] = "notebook server"
+
+            #We massage the url into the right form.
+            url = self.txtNotebookServerURL.text().strip('/') #Get rid of any trailing /'s.
+            if not url.lower().startswith("http://"):
+                url = "http://" + url
+            #strip off the "/login" if it exists.
+            if url.endswith("/login"):
+                url = url[:-6]
+            server_config["url"] = url
             server_config["username"] = self.txtNotebookServerUsername.text()
             server_config["password"] = self.txtNotebookServerPassword.text()
 

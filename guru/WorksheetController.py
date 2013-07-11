@@ -4,7 +4,7 @@
 #   Open and save .sws files.
 #   Delete the internal notebook object on disk when done.
 
-import os, re
+import os
 
 try:
     # simplejson is faster, so try to import it first
@@ -20,7 +20,7 @@ from sagenb.misc.misc import (unicode_str, walltime)
 
 from guru.globals import GURU_PORT, GURU_USERNAME, guru_notebook
 from guru.ServerConfigurations import ServerConfigurations
-import guru.SageProcessFactory as SageProcessFactory
+import guru.SageProcessManager as SageProcessManager
 
 worksheet_commands = {}
 
@@ -64,10 +64,10 @@ class WorksheetController(QObject):
         if not server:
             server = ServerConfigurations.getDefault()
         wsc = WorksheetController(webViewController)
+        wsc.server_configuration = server
         ws = guru_notebook.create_new_worksheet('Untitled', wsc.notebook_username)
-        SageProcessFactory.setWorksheetProcessServer(ws, server)
+        SageProcessManager.setWorksheetProcessServer(ws, server)
         wsc.setWorksheet(ws)
-        wsc._worksheet._notebook = guru_notebook
         return wsc
 
     @staticmethod
@@ -75,14 +75,15 @@ class WorksheetController(QObject):
         if not server:
             server = ServerConfigurations.getDefault()
         wsc = WorksheetController(webViewController)
+        wsc.server_configuration = server
         ws = wsc.notebook.import_worksheet(filename, wsc.notebook_username)
-        SageProcessFactory.setWorksheetProcessServer(ws, server)
+        SageProcessManager.setWorksheetProcessServer(ws, server)
         wsc.setWorksheet(ws)
-        wsc._worksheet._notebook = guru_notebook
         return wsc
 
     def useServerConfiguration(self, server_config):
-        SageProcessFactory.setWorksheetProcessServer(self._worksheet, server_config)
+        self.server_configuration = server_config
+        SageProcessManager.setWorksheetProcessServer(self._worksheet, server_config)
 
     def setWorksheet(self, worksheet):
         #Check that the worksheet we were given has the notebook setup correctly.
@@ -128,17 +129,30 @@ class WorksheetController(QObject):
             #print "URL: %s" % url
             command = url.split("/")[-1]
 
-            print "COMMAND: %s" % command
+            if self.server_configuration["type"] == "local":
+                result = worksheet_commands[command](self, self._worksheet)
 
-            result = worksheet_commands[command](self, self._worksheet)
-            
-            #Because we encode result in a javascript string literal, we need
-            #to format the string as follows.
-            result = repr(result)[1:-1]
+                #Because we encode result in a javascript string literal, we need
+                #to format the string as follows.
+                result = repr(result)[1:-1]
 
-            self.webview_controller.putAjaxConsole("result: " + result + "\n")
-            javascript = "Guru.requests['%s']['callback']('success', '%s');" % (token, result)
-            self.webFrame.evaluateJavaScript(javascript)
+                self.sendResultToPage(result, token)
+
+            elif self.server_configuration["type"] == "notebook server":
+                (fall_through, remote_result) = SageProcessManager.mirrorCommand(self._worksheet, (command, self.request_values))
+                if fall_through:
+                    # Handle the command ourselves.
+                    result = worksheet_commands[command](self, self._worksheet)
+                    result = repr(result)[1:-1]
+                else:
+                    #Because we encode result in a javascript string literal, we need
+                    #to format the string as follows.
+                    result = repr(remote_result)[1:-1]
+
+                self.sendResultToPage(result, token)
+
+            elif self.server_configuration["type"] == "cell server":
+                pass
 
         else:
             #Let the Sage Notebook Server handle the request as usual.
@@ -150,6 +164,14 @@ class WorksheetController(QObject):
             self.isDirty = True
             self.emit(SIGNAL("dirty(bool)"), True)
 
+    def sendResultToPage(self, result, token):
+        #Now give the result back to the page.
+        self.webview_controller.putAjaxConsole("result: " + result + "\n")
+        javascript = "Guru.requests['%s']['callback']('success', '%s');" % (token, result)
+        self.webFrame.evaluateJavaScript(javascript)
+        javascript = "delete Guru.requests['%s'];" % token
+        self.webFrame.evaluateJavaScript(javascript)
+
     @Slot(str)
     def putAjaxConsole(self, text):
         self.webview_controller.putAjaxConsole(text + "\n")
@@ -159,6 +181,7 @@ class WorksheetController(QObject):
         #to be eligible for garbage collection.
         WorksheetController.worksheet_count -= 1
         if self._worksheet is not None:
+            SageProcessManager.stopSageProcess(self._worksheet)
             #Now remove the worksheet.
             self._worksheet.quit()
             self._worksheet = None
