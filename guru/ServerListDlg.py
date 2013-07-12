@@ -93,7 +93,7 @@ class ServerListDlg(QDialog, Ui_ServerListDlg):
         self.ServerListView.currentItem().setText(new_server["name"])
 
         #When we set the "default" value, we need to also take care of the font of the item in the ListView.
-        ServerConfigurations.setDefault(server_config, set=dialog.DefaultCheckBox.isChecked())
+        ServerConfigurations.setDefault(new_server, set=new_server["default"])
         #Update the ListView to reflect our possibly new default server settings.
         self.updateListViewDefault()
 

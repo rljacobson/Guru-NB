@@ -125,7 +125,7 @@
       </layout>
       <zorder></zorder>
      </widget>
-     <widget class="QWidget" name="NotbookServerTab">
+     <widget class="QWidget" name="NotebookServerTab">
       <attribute name="title">
        <string>Sage Notebook Server</string>
       </attribute>

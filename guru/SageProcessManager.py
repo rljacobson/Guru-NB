@@ -5,7 +5,7 @@ import requests
 # from sagenb.notebook.cell import Cell
 
 from guru.ServerConfigurations import ServerConfigurations
-from guru.globals import GURU_NOTEBOOK_MIRROR_PREFIX, GURU_NOTEBOOK_DIR
+from guru.globals import GURU_NOTEBOOK_MIRROR_PREFIX, GURU_NOTEBOOK_DIR, guru_notebook
 
 from sagenb.notebook.worksheet import Worksheet
 
@@ -45,6 +45,12 @@ def setWorksheetProcessServer(worksheet, server_config=None):
     # from its associated notebook, so we have to do some stuff that isn't
     # necessarily how one would normally design it if one were starting
     # from scratch.
+
+    #We will need the worksheet to have it's _notebook property set.
+    if (not hasattr(worksheet, "_notebook")) or (worksheet._notebook is None):
+        worksheet._notebook = guru_notebook
+
+    #If we aren't given a server config, use the default.
     if not server_config:
         server_config = ServerConfigurations.getDefault()
 
@@ -287,7 +293,7 @@ def mirrorCommand(worksheet, command):
     #Send the command to the server.
     session = server_session["session"]
     url = "%(url)s/home/%(filename)s/%(cmd)s" % {'url':server_config["url"], 'filename':mirror["filename"], 'cmd':command_text}
-    #print "MIRRORING AT URL:%s" % url
+    # print "MIRRORING AT URL:%s" % url
     if postvars:
         response = session.post(url, postvars)
     else:
@@ -336,6 +342,12 @@ def handleCellUpdate(worksheet, result):
         if r['new_input']:
             cell.set_input_text(r['new_input'])
         cell._out_html = r['output_html']
+
+        #If the computation generated files, copy them to the local cell.
+        # print "OUTPUT: %s" % r["output"]
+        # print "RESULT: %s" % result
+        #print "R KEYS: %s" % r.keys()
+
     else:
         cell._out_html = ''
 
@@ -343,7 +355,10 @@ def handleCellUpdate(worksheet, result):
         cell._interrupted = True
 
     cell.set_output_text(r['output'], html=True)
-    cell.set_introspect_output(r['introspect_output'])
+    if r.has_key('introspect_output'):
+        cell.set_introspect_output(r['introspect_output'])
+    elif r.has_key('introspect_html'):
+        cell.set_introspect_output(r['introspect_html'])
 
 
 def isCommandUnmirrored(elmt, lst=UnmirroredCommands):

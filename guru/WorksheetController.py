@@ -131,11 +131,6 @@ class WorksheetController(QObject):
 
             if self.server_configuration["type"] == "local":
                 result = worksheet_commands[command](self, self._worksheet)
-
-                #Because we encode result in a javascript string literal, we need
-                #to format the string as follows.
-                result = repr(result)[1:-1]
-
                 self.sendResultToPage(result, token)
 
             elif self.server_configuration["type"] == "notebook server":
@@ -143,11 +138,8 @@ class WorksheetController(QObject):
                 if fall_through:
                     # Handle the command ourselves.
                     result = worksheet_commands[command](self, self._worksheet)
-                    result = repr(result)[1:-1]
                 else:
-                    #Because we encode result in a javascript string literal, we need
-                    #to format the string as follows.
-                    result = repr(remote_result)[1:-1]
+                    result = remote_result
 
                 self.sendResultToPage(result, token)
 
@@ -165,9 +157,17 @@ class WorksheetController(QObject):
             self.emit(SIGNAL("dirty(bool)"), True)
 
     def sendResultToPage(self, result, token):
+        #Because we encode result in a javascript string literal, we need
+        #to format the string as follows.
+        result_string = repr(result)
+        if result_string.startswith("u'"):
+            result_string = result_string[2:-1]
+        else:
+            result_string = result_string[1:-1]
+
         #Now give the result back to the page.
         self.webview_controller.putAjaxConsole("result: " + result + "\n")
-        javascript = "Guru.requests['%s']['callback']('success', '%s');" % (token, result)
+        javascript = "Guru.requests['%s']['callback']('success', '%s');" % (token, result_string)
         self.webFrame.evaluateJavaScript(javascript)
         javascript = "delete Guru.requests['%s'];" % token
         self.webFrame.evaluateJavaScript(javascript)
