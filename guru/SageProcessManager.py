@@ -23,7 +23,7 @@ ServerSessions = []
 # local worksheet to a worksheet on the server. It has the following structure:
 
 # b = {"worksheet": worksheet,  # A local worksheet object.
-#      "filename": remote_filename, # The filename of the REMOTE mirror (i.e. rjacobson/0).
+#      "filename": remote_filename, # The filename of the REMOTE mirror (i.e. rjacobson/37).
 #      "name": remote_name  # The title Guru assigned to the REMOTE mirror.
 #     }
 
@@ -54,21 +54,19 @@ def setWorksheetProcessServer(worksheet, server_config=None):
     if not server_config:
         server_config = ServerConfigurations.getDefault()
 
-    #worksheet = Worksheet()
-
-    #Stop whatever process may be running.
-    stopSageProcess(worksheet)
-
     # Note that some Sage interfaces do not require worksheet.initialize_sage().
     # Seems to me initialize_sage() doesn't belong in Worksheet at all, but in
     # sagenb.interfaces.worksheet_process.WorksheetProcess, but I didn't write it.
 
     if server_config["type"]=="local":
+        #For local servers, it's easy.
+        worksheet = stopSageProcess(worksheet)
         worksheet._Worksheet__sage = getLocalProcess(server_config)
         worksheet.initialize_sage()
 
     elif server_config["type"]=="notebook server":
-        setNotebookProcessServer(worksheet, server_config)
+        worksheet = setNotebookProcessServer(worksheet, server_config)
+
     elif server_config["type"]=="cell server":
         pass
 
@@ -78,6 +76,8 @@ def setWorksheetProcessServer(worksheet, server_config=None):
     else:
         #This should never execute. It just restarts sage using whatever the notebook gives it.
         worksheet.restart_sage()
+
+    return worksheet
 
 def getLocalProcess(server):
     from sagenb.interfaces import WorksheetProcess_ExpectImplementation
@@ -99,7 +99,7 @@ def restartSageProcess(worksheet):
     #Turns out, the following is equivalent to restarting the process.
     setWorksheetProcessServer(worksheet, server_config)
 
-def stopSageProcess(worksheet):
+def stopSageProcess(worksheet, create_new = True):
     #How to stop a process depends on the kind of process.
 
     if ManagedWorksheets.has_key(worksheet):
@@ -107,6 +107,8 @@ def stopSageProcess(worksheet):
     else:
         #We're not managing this worksheet, so assume it's local. It is harmless to do so.
         server_config = {"type": "local"}
+
+    returned_worksheet = worksheet
 
     if server_config["type"]=="local":
         #The worksheet may not even have a _Worksheet__sage property.
@@ -117,13 +119,11 @@ def stopSageProcess(worksheet):
 
     elif server_config["type"]=="notebook server":
         #We need to do the following:
-        # 1. Remove the mirror from the mirror pool.
-        # 2. Delete the remote worksheet
-        # 3. Close the session if there are no other mirrors.
-        # 4. Stop managing this worksheet.
-
-
-        # 1. Remove the mirror from the mirror pool.
+        # 1. Sync the remote worksheet with the local worksheet.
+        # 2. Remove the mirror from the mirror pool.
+        # 3. Delete the remote worksheet.
+        # 4. Close the session if there are no other mirrors.
+        # 5. Stop managing this worksheet.
 
         server_session = getSessionForServer(server_config)
         if not server_session:
@@ -134,24 +134,38 @@ def stopSageProcess(worksheet):
         if not mirror:
             #This worksheet has not yet connected, so nothing to stop.
             return
+
+        # 1. Sync the remote worksheet with the local worksheet.
+        # "Sync" means create a new local worksheet with the contents of the old
+        # worksheet and return it. We only do this if create_new is true.
+        if create_new:
+            new_file = os.path.join(GURU_NOTEBOOK_DIR, "sync_worksheet.sws")
+            saveRemoteWorksheet(worksheet, new_file)
+            #ws = wsc.notebook.import_worksheet(filename, wsc.notebook_username)
+            notebook_username = worksheet.filename().split('/')[0]
+            returned_worksheet = worksheet._notebook.import_worksheet(new_file, notebook_username)
+            returned_worksheet._notebook = worksheet._notebook
+            os.remove(new_file)
+
+        # 2. Remove the mirror from the mirror list.
         server_session["mirrors"].remove(mirror)
 
         session = server_session["session"]
 
-        # 2. Delete the remote worksheet
+        # 3. Delete the remote worksheet
         data = {'filename':mirror["filename"]}
         url = "%s/send_to_trash" % ManagedWorksheets[worksheet]["url"]
         response = session.post(url, data)
         #If the server doesn't return '200 OK', raise an exception.
         response.raise_for_status()
 
-        # 3. Close the session if there are no other mirrors.
+        # 4. Close the session if there are no other mirrors.
         if len(server_session["mirrors"]) == 0:
             #Close the requests.session connection.
             session.close()
             ServerSessions.remove(server_session)
 
-        # 4. Stop managing this worksheet.
+        # 5. Stop managing this worksheet.
         del ManagedWorksheets[worksheet]
 
     elif server_config["type"]=="cell server":
@@ -163,9 +177,11 @@ def stopSageProcess(worksheet):
     else:
         pass
 
+    return returned_worksheet
+
 def setNotebookProcessServer(worksheet, server_config):
     # First, stop whatever the worksheet is using.
-    stopSageProcess(worksheet)
+    worksheet = stopSageProcess(worksheet)
 
     # Lot's to do in this one:
     # 1. Get an active requests.session object associated to this server.
@@ -206,8 +222,9 @@ def setNotebookProcessServer(worksheet, server_config):
 
     # The name of the remote worksheet.
     # We could do time and date in some format, but this is easy.
-    timestamp = str(int(time.time()))
-    remote_worksheet_name = "%s%s - %s" %(GURU_NOTEBOOK_MIRROR_PREFIX, timestamp, worksheet.name())
+    # timestamp = str(int(time.time()))
+    #remote_worksheet_name = "%s%s - %s" %(GURU_NOTEBOOK_MIRROR_PREFIX, timestamp, worksheet.name())
+    remote_worksheet_name = worksheet.name()
     new_mirror["name"] = remote_worksheet_name
 
     # Post variables.
@@ -241,6 +258,8 @@ def setNotebookProcessServer(worksheet, server_config):
     # 5. Set the worksheet to be managed.
     ManagedWorksheets[worksheet] = server_config
 
+    return worksheet
+
 def connectToNotebookServer(server_config):
     # Returns a requests.session object.
 
@@ -267,11 +286,8 @@ def connectToNotebookServer(server_config):
 
     return session
 
-def mirrorCommand(worksheet, command):
-    # Returns a tuple of the form (bool, str), where the first value is True if the
-    # caller also needs to execute the command and False if the command is handled
-    # entirely by whatever backend the worksheet connects to, and the second value
-    # is a string containing the response of the server.
+def remoteCommand(worksheet, command):
+    # Returns a string containing the response of the server.
 
     # Command is a tuple of the form (command_text, postvars). postvars is NOT json
     # encoded.
@@ -279,13 +295,13 @@ def mirrorCommand(worksheet, command):
 
     if not ManagedWorksheets.has_key(worksheet):
         #We aren't managing this worksheet, so there's nothing to do here.
-        return (True, None)
+        return None
 
     server_config = ManagedWorksheets[worksheet]
 
     if server_config["type"] == "local":
         #Local processes don't mirror commands, so there's nothing to do here.
-        return (True, None)
+        return None
 
     server_session = getSessionForServer(server_config)
     mirror = getMirrorForWorksheet(worksheet, server_session)
@@ -302,13 +318,51 @@ def mirrorCommand(worksheet, command):
     #If the server doesn't return '200 OK', raise an exception.
     response.raise_for_status()
 
-    result = response.text
+    #Fix the urls contained in the response.
+    from_string = "/home/%s" % mirror["filename"]
+    to_string =  "%(url)s/home/%(filename)s" % {'url':server_config["url"], 'filename':mirror["filename"]}
+    result = response.text.replace(from_string, to_string)
 
-    #For some commands, we have extra work to do.
-    if command_text == "cell_update":
-        handleCellUpdate(worksheet, result)
+    return result
 
-    return (not isCommandUnmirrored(command_text), result)
+def saveRemoteWorksheet(worksheet, filename):
+
+    if not ManagedWorksheets.has_key(worksheet):
+        #This is not a managed worksheet. Save the file the normal way.
+        worksheet._notebook.export_worksheet(worksheet.filename(), filename)
+        return
+
+    server_config = ManagedWorksheets[worksheet]
+    if server_config["type"] == "local":
+        #This is not a remote worksheet. Save the file the normal way.
+        worksheet._notebook.export_worksheet(worksheet.filename(), filename)
+        return
+
+    server_session = getSessionForServer(server_config)
+    if not server_session:
+        #Not connected for some reason. Nothing to do.
+        return
+
+    mirror = getMirrorForWorksheet(worksheet, server_session)
+    session = server_session["session"]
+
+    #Open a file to write to.
+    f = open(filename, 'w')
+
+    #Sanitize the title for use in a url.
+    import urllib
+    local_title = urllib.quote(mirror["name"])
+
+    #Ask the server for a copy of the file.
+    url = "%(url)s/home/%(remote_filename)s/download/%(local_title)s.sws"
+    url = url % {"url": server_config["url"], "remote_filename": mirror["filename"], "local_title": local_title}
+    response = session.get(url, stream=True)
+    for t in response.iter_content():
+        f.write(t)
+
+    f.close()
+
+
 
 def getSessionForServer(server_config):
     #Given a server configuration, returns a session if one exists. Otherwise, returns None.
@@ -326,43 +380,3 @@ def getMirrorForWorksheet(worksheet, server_session):
             return mirror
 
     return None
-
-def handleCellUpdate(worksheet, result):
-    r = json.loads(result)
-
-    #worksheet=Worksheet()
-
-    cell = worksheet.get_cell_with_id(r['id'])
-
-    #cell = Cell()
-
-    # Nothing to do with r['status'] itself.
-    # However, take action based on it's value.
-    if r['status'] == 'd':
-        if r['new_input']:
-            cell.set_input_text(r['new_input'])
-        cell._out_html = r['output_html']
-
-        #If the computation generated files, copy them to the local cell.
-        # print "OUTPUT: %s" % r["output"]
-        # print "RESULT: %s" % result
-        #print "R KEYS: %s" % r.keys()
-
-    else:
-        cell._out_html = ''
-
-    if r['interrupted'] is True or r['interrupted'] == "restart":
-        cell._interrupted = True
-
-    cell.set_output_text(r['output'], html=True)
-    if r.has_key('introspect_output'):
-        cell.set_introspect_output(r['introspect_output'])
-    elif r.has_key('introspect_html'):
-        cell.set_introspect_output(r['introspect_html'])
-
-
-def isCommandUnmirrored(elmt, lst=UnmirroredCommands):
-    for e in lst:
-        if e == elmt:
-            return True
-    return False

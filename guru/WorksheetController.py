@@ -24,6 +24,11 @@ import guru.SageProcessManager as SageProcessManager
 
 worksheet_commands = {}
 
+dirty_commands = [
+    "eval",
+    "introspect"
+]
+
 class WorksheetController(QObject):
     #Class variables
     notebook = guru_notebook
@@ -44,7 +49,6 @@ class WorksheetController(QObject):
         self.request_values = None
 
         self.isDirty = False
-        self.cleanState = 0
 
         #Sanity check.
         if guru_notebook is None:
@@ -83,9 +87,23 @@ class WorksheetController(QObject):
 
     def useServerConfiguration(self, server_config):
         self.server_configuration = server_config
-        SageProcessManager.setWorksheetProcessServer(self._worksheet, server_config)
+        new_worksheet = SageProcessManager.setWorksheetProcessServer(self._worksheet, server_config)
+
+        #There are some instances when we have to swap out worksheets, i.e., when switching from a
+        #notebook server.
+        if self._worksheet is new_worksheet:
+            return
+
+        self._worksheet._notebook.delete_worksheet(self._worksheet.filename())
+        self._worksheet = new_worksheet
+
+        #Open the worksheet in the webView
+        self.webFrame.setUrl(self.worksheetUrl())
+
 
     def setWorksheet(self, worksheet):
+        # This "opens" the worksheet in the webview as if it were a new file.
+
         #Check that the worksheet we were given has the notebook setup correctly.
         if (not hasattr(worksheet, "_notebook")) or (worksheet._notebook is None):
             worksheet._notebook = guru_notebook
@@ -93,7 +111,6 @@ class WorksheetController(QObject):
 
         #Handle the dirty status of the worksheet.
         self.isDirty = False
-        self.cleanState = worksheet.state_number()
 
         #Open the worksheet in the webView
         self.webFrame.setUrl(self.worksheetUrl())
@@ -129,32 +146,26 @@ class WorksheetController(QObject):
             #print "URL: %s" % url
             command = url.split("/")[-1]
 
+            # Check and see if the operation will make the worksheet dirty. If so, emit a "dirty" signal.
+            if command in dirty_commands:
+                self.isDirty = True
+                self.emit(SIGNAL("dirty(bool)"), True)
+
             if self.server_configuration["type"] == "local":
                 result = worksheet_commands[command](self, self._worksheet)
-                self.sendResultToPage(result, token)
 
             elif self.server_configuration["type"] == "notebook server":
-                (fall_through, remote_result) = SageProcessManager.mirrorCommand(self._worksheet, (command, self.request_values))
-                if fall_through:
-                    # Handle the command ourselves.
-                    result = worksheet_commands[command](self, self._worksheet)
-                else:
-                    result = remote_result
-
-                self.sendResultToPage(result, token)
+                result = SageProcessManager.remoteCommand(self._worksheet, (command, self.request_values))
 
             elif self.server_configuration["type"] == "cell server":
                 pass
+
+            self.sendResultToPage(result, token)
 
         else:
             #Let the Sage Notebook Server handle the request as usual.
             javascript = "sagenb.guru_async_request_fall_through('%s');" % token
             self.webFrame.evaluateJavaScript(javascript)
-
-        #Check and see if the operation has made the worksheet dirty. If so, emit a "dirty" signal.
-        if self._worksheet.state_number() > self.cleanState and self.isDirty == False:
-            self.isDirty = True
-            self.emit(SIGNAL("dirty(bool)"), True)
 
     def sendResultToPage(self, result, token):
         #Because we encode result in a javascript string literal, we need
@@ -181,28 +192,37 @@ class WorksheetController(QObject):
         #to be eligible for garbage collection.
         WorksheetController.worksheet_count -= 1
         if self._worksheet is not None:
-            SageProcessManager.stopSageProcess(self._worksheet)
+            SageProcessManager.stopSageProcess(self._worksheet, create_new=False)
             #Now remove the worksheet.
-            self._worksheet.quit()
+            self._worksheet._notebook.delete_worksheet(self._worksheet.filename())
             self._worksheet = None
 
     def saveWorksheet(self, file_name):
-        #Write out the worksheet to filename whether it exists or not.
+        #Write out the worksheet to filename, overwriting if necessary.
         if os.path.exists(file_name):
             os.remove(file_name) #This may be unnecessary.
-        self.worksheet_download(self._worksheet, file_name)
+
+
+        if self.server_configuration["type"] == "local":
+            self.worksheet_download(self._worksheet, file_name)
+
+        elif self.server_configuration["type"] == "notebook server":
+            SageProcessManager.saveRemoteWorksheet(self._worksheet, file_name)
+
+        elif self.server_configuration["type"] == "cell server":
+            pass
+
 
         #The worksheet is no longer dirty.
         self.isDirty = False
-        self.cleanState = self._worksheet.state_number()
         self.emit(SIGNAL("dirty(bool)"), False)
 
     def worksheetUrl(self):
         if self._worksheet is None:
             return ''
         #There is probably a better way to do this.
-        url_vars = {'port' : GURU_PORT, 'username': GURU_USERNAME, 'idnum': self._worksheet.id_number()}
-        url = "http://localhost:%(port)s/home/%(username)s/%(idnum)s/" % url_vars
+        url_vars = {'port' : GURU_PORT, 'name': self._worksheet.filename()}
+        url = "http://localhost:%(port)s/home/%(name)s/" % url_vars
         return url
 
     def getTitle(self):
