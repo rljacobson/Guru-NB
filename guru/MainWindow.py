@@ -1,5 +1,4 @@
-import platform
-import os
+import platform, os, time
 
 from PySide.QtGui import (QMainWindow, QMessageBox, QFileDialog, QAction, QIcon, QPixmap, QApplication)
 from PySide.QtCore import (SIGNAL, SLOT, Slot, Qt, QObject, QSettings)
@@ -12,7 +11,7 @@ from guru.Ui_MainWindow import Ui_MainWindow
 from guru.WebViewController import WebViewController
 from guru.WorksheetController import WorksheetController
 from guru.Consoles import Consoles
-from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION
+from guru.globals import GURU_ROOT, GURU_ONLINE_DOCUMENTATION, GURU_ERROR_REPEAT_TIME
 from guru.ServerConfigurations import ServerConfigurations
 from guru.ServerListDlg import ServerListDlg
 import guru.resources_rc
@@ -46,6 +45,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.file_name = file_name
 
+        self.lastRemoteError = 0
+
         #Consoles are just windows displaying logs of various things going on.
         self.consoles_window = Consoles(self) #Hidden until shown.
 
@@ -75,12 +76,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.doActionSageServer()
 
         if isNewFile:
-            self.loadNewFile()
+            if not self.loadNewFile():
+                #There was an error loading a new file. Close the window.
+                self.close()
+                return
 
         #This window may be editing a worksheet associated to a file.
         if self.file_name is not None:
             self.isWelcome = True #Tricks loadFile into loading the file in the current window.
-            self.loadFile(file_name)
+            if not self.loadFile(file_name):
+                #Loading the file failed, so close this window.
+                self.close()
+                return
     
     def setupUi(self):
         #The superclass sets up most of the UI.
@@ -239,7 +246,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Connect the javascript bridge.
         self.connect(self.webViewController().webView().page().mainFrame(), SIGNAL("javaScriptWindowObjectCleared()"), self.addJavascriptBridge)
         #When the welcome page finishes loading, we add the recent files.
-        self.connect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage);
+        self.connect(self.webViewController().webView(), SIGNAL('loadFinished(bool)'), self.addRecentFilesToWelcomePage)
         #Display the welcome page.
         self.webViewController().showHtmlFile("guru_welcome.html")
 
@@ -446,10 +453,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #5. calls updateWindowMenu().
         self.updateWindowMenu()
 
-    #@Slot(bool)
     def dirty(self, isDirty):
         self.isDirty = isDirty
         self.setWindowModified(isDirty)
+
+    @Slot(str)
+    def handleRemoteCommandError(self, message):
+        #When an error happens, it may generate a cascade of errors. We don't want to flood the user
+        #with these errors.
+        if time.time() - self.lastRemoteError > GURU_ERROR_REPEAT_TIME:
+            QMessageBox.critical(self, "Connection Error", message)
+        self.lastRemoteError = time.time()
+
 
     ############### Actions ###############
 
@@ -462,7 +477,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if self.isWelcome:
             self.hideWelcome()
-            self.loadNewFile()
+            if not self.loadNewFile():
+                #There was an error loading the new file. Return to a welcome page.
+                self.showWelcome()
         else:
             #Create a new MainWindow object to use for the new worksheet.
             main_window = MainWindow(isNewFile=True)
@@ -470,13 +487,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def loadNewFile(self):
         #Create a new worksheet
-        self.webViewController().newWorksheetFile()
+        try:
+            self.webViewController().newWorksheetFile()
+        except Exception as e:
+            QMessageBox.critical(self, "New File Error", "Could not create a new file:\n%s" % e.message)
+            return False
+
         self.dirty(False)
-        self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
+        self.connectWorksheetSignals()
+
+        self.file_name = None
 
         #Set the title appropriately.
-        self.file_name = None
         self.setUniqueWindowTitle()
+
+        return True
 
 
     @Slot()
@@ -499,7 +524,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def loadFile(self, file_name):
         #Which MainWindow object we create the new worksheet in depends on if loadFile()
-        #is fired on a welcome page or not.
+        #is fired on a welcome page or not. Returns True on success.
 
         if self.isWelcome:
             #Use the current MainWindow object to create the worksheet.
@@ -509,10 +534,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             #We set the window title.
             self.setUniqueWindowTitle()
             #Open the worksheet in the webView.
-            self.webViewController().openWorksheetFile(file_name)
+            try:
+                self.webViewController().openWorksheetFile(file_name)
+            except Exception as e:
+                QMessageBox.critical(self, "File Open Error", "Could not open the file:\n%s" % e.message)
+                self.showWelcome()
+                return False
+
             #Set the dirty flag handler.
             self.dirty(False)
-            self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
+            self.connectWorksheetSignals()
             self.updateRecentFilesMenu()
         else:
             #Create a new MainWindow object to use for the new worksheet.
@@ -521,6 +552,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             main_window.activateWindow()
             main_window.raise_()
+
+        return True
+
+    def connectWorksheetSignals(self):
+        #Worksheets emit a couple of signals that we want to listen for.
+        self.connect(self.webViewController().worksheet_controller, SIGNAL("dirty(bool)"), self.dirty)
+        #self.connect(self.webViewController().worksheet_controller, SIGNAL("remoteCommandError(str)"), self.handleRemoteCommandError)
 
     def doActionSave(self):
         if self.file_name:
@@ -643,7 +681,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         server_name = server_list_dialog.ServerListView.currentItem().text()
         if wsc:
             new_config = ServerConfigurations.getServerByName(server_name)
-            wsc.useServerConfiguration(new_config)
+            try:
+                wsc.useServerConfiguration(new_config)
+            except Exception as e:
+                QMessageBox.critical(self, "Error Switching Servers", "Could not switch servers:\n%s" % e.message)
 
 #For reasons unknown, adding the parent of a WebView as a JavaScriptWindowObject
 #of the WebView results in a segfault when the parent is destroyed. We get around

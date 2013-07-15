@@ -12,7 +12,7 @@ try:
 except ImportError:
     import json
 
-from PySide.QtCore import (QObject, SIGNAL, Slot)
+from PySide.QtCore import (QObject, SIGNAL, Slot, Signal)
 
 from sagenb.notebook.notebook import Notebook
 from sagenb.notebook.misc import encode_response
@@ -61,6 +61,12 @@ class WorksheetController(QObject):
 
         self.server_configuration = None
 
+        #When we use a Notebook Server, we want to be able to access resources on the server
+        #from the webview. In order to do so, we need to set a session cookie. We set this
+        #cookie on loadStarted()
+        self.connect(self.webFrame, SIGNAL('loadFinished(bool)'), self.setSessionCookie)
+
+
     @staticmethod
     def withNewWorksheet(webViewController, server=None):
         # server is a Sage server configuration that will determine the Sage process this
@@ -89,17 +95,17 @@ class WorksheetController(QObject):
         self.server_configuration = server_config
         new_worksheet = SageProcessManager.setWorksheetProcessServer(self._worksheet, server_config)
 
-        #There are some instances when we have to swap out worksheets, i.e., when switching from a
+        #If we are switching TO a Notebook Server, we want to be able to access resources on the
+        #server from the browser page.
+        self.setSessionCookie()
+
+        #There are some instances when we have to swap out worksheets, i.e., when switching FROM a
         #notebook server.
-        if self._worksheet is new_worksheet:
-            return
-
-        self._worksheet._notebook.delete_worksheet(self._worksheet.filename())
-        self._worksheet = new_worksheet
-
-        #Open the worksheet in the webView
-        self.webFrame.setUrl(self.worksheetUrl())
-
+        if self._worksheet is not new_worksheet:
+            self._worksheet._notebook.delete_worksheet(self._worksheet.filename())
+            self._worksheet = new_worksheet
+            #Open the worksheet in the webView
+            self.webFrame.setUrl(self.worksheetUrl())
 
     def setWorksheet(self, worksheet):
         # This "opens" the worksheet in the webview as if it were a new file.
@@ -119,6 +125,13 @@ class WorksheetController(QObject):
         #This method is called whenever new content is loaded into the webFrame.
         #Each time this happens, we need to reconnect the Python-javascript bridge.
         self.webFrame.addToJavaScriptWindowObject("Guru", self)
+
+    def setSessionCookie(self):
+        cookie_string = SageProcessManager.getSessionCookie(self.server_configuration)
+        if cookie_string:
+            javascript = "document.cookie='%s';" % cookie_string
+            print javascript
+            self.webFrame.evaluateJavaScript(javascript)
 
     @Slot(str)
     def asyncRequest(self, token):
@@ -143,7 +156,7 @@ class WorksheetController(QObject):
 
             #The url encodes the command. They look like:
             #   url = "/home/admin/0/worksheet_properties"
-            #print "URL: %s" % url
+            print "URL: %s" % url
             command = url.split("/")[-1]
 
             # Check and see if the operation will make the worksheet dirty. If so, emit a "dirty" signal.
@@ -155,7 +168,13 @@ class WorksheetController(QObject):
                 result = worksheet_commands[command](self, self._worksheet)
 
             elif self.server_configuration["type"] == "notebook server":
-                result = SageProcessManager.remoteCommand(self._worksheet, (command, self.request_values))
+                try:
+                    result = SageProcessManager.remoteCommand(self._worksheet, (command, self.request_values))
+                except Exception as e:
+                    #This signal may be emitted over and over, so the owner of this WorksheetController
+                    #needs to take care of handling only the first error signal (or whatever).
+                    #self.emit(SIGNAL("remoteCommandError(str)"), "Error executing remote command:\n%s"%e.message)
+                    return
 
             elif self.server_configuration["type"] == "cell server":
                 pass

@@ -10,7 +10,7 @@ GURU_NOTEBOOK_DIR = os.path.join(tempfile.mkdtemp(), '.sagenb')
 GURU_USERNAME = 'admin'
 GURU_EMAIL = 'rljacobson@gmail.com'
 GURU_ONLINE_DOCUMENTATION = 'http://www.sagemath.org/doc/index.html'
-GURU_NOTEBOOK_MIRROR_PREFIX = "Guru - "
+GURU_ERROR_REPEAT_TIME = 10 # An error is "new" if it occurs 10 seconds after the previous error.
 GURU_LIB_PATH = os.path.join(GURU_ROOT, "site-packages")
 sys.path.append(GURU_LIB_PATH)
 

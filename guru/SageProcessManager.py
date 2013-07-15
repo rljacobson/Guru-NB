@@ -5,7 +5,7 @@ import requests
 # from sagenb.notebook.cell import Cell
 
 from guru.ServerConfigurations import ServerConfigurations
-from guru.globals import GURU_NOTEBOOK_MIRROR_PREFIX, GURU_NOTEBOOK_DIR, guru_notebook
+from guru.globals import GURU_NOTEBOOK_DIR, guru_notebook
 
 from sagenb.notebook.worksheet import Worksheet
 
@@ -99,7 +99,7 @@ def restartSageProcess(worksheet):
     #Turns out, the following is equivalent to restarting the process.
     setWorksheetProcessServer(worksheet, server_config)
 
-def stopSageProcess(worksheet, create_new = True):
+def stopSageProcess(worksheet, create_new=True):
     #How to stop a process depends on the kind of process.
 
     if ManagedWorksheets.has_key(worksheet):
@@ -128,12 +128,12 @@ def stopSageProcess(worksheet, create_new = True):
         server_session = getSessionForServer(server_config)
         if not server_session:
             #This server has no active sessions, so there's nothing to stop.
-            return
+            return returned_worksheet
 
         mirror = getMirrorForWorksheet(worksheet, server_session)
         if not mirror:
             #This worksheet has not yet connected, so nothing to stop.
-            return
+            return returned_worksheet
 
         # 1. Sync the remote worksheet with the local worksheet.
         # "Sync" means create a new local worksheet with the contents of the old
@@ -362,6 +362,39 @@ def saveRemoteWorksheet(worksheet, filename):
 
     f.close()
 
+def getSessionCookie(server_config):
+    # Returns the session cookie associated to the worksheet, or an empty string if there is none.
+
+    if server_config["type"] != "notebook server":
+        #This is not a remote worksheet.  Nothing to return.
+        return ''
+
+    server_session = getSessionForServer(server_config)
+    if not server_session:
+        #Not connected for some reason. Nothing to do.
+        return ''
+
+    session = server_session["session"]
+
+    try:
+        domain_string = session.cookies["session"]
+    except:
+        #There is no session cookie. This case shouldn't ever happen.
+        return ''
+
+    #We extract the domain from the url of the server.
+    #First, remove 'http://' and split on '/'.
+    domain_string = server_config["url"][7:].split('/')[0]
+    #Now, strip off the port number if there is one.
+    domain_string = domain_string.split(':')[0]
+
+    # Construct a cookie string. The string has the form:
+    #    'session="0934839894"; domain=localhost.local; path=/'
+
+    cookie_string = 'session=%(session)s; domain=%(domain)s; path=/'
+    cookie_string = cookie_string % {"session": session.cookies["session"], "domain": domain_string}
+
+    return cookie_string
 
 
 def getSessionForServer(server_config):
